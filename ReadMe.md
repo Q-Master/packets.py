@@ -12,7 +12,7 @@ You can use `pip` package manager to install `packets`. The most recent
 version of the library can be installed directly from Git repo:
 
 ```bash
-$ pip install https://github.com/Q-Master/packets.py.git
+$ pip install git+https://github.com/Q-Master/packets.py.git
 ```
 
 Usage

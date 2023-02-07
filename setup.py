@@ -22,8 +22,7 @@ if sys.version_info.major < 3:
 __here__ = os.path.abspath(os.path.dirname(__file__))
 
 NAME = 'packets'
-MODULES = []
-PACKAGES = ['packets']
+PACKAGES = ['packets', 'packets.processors']
 DESCRIPTION = 'Packets system for serialization/deserialization.'
 URL = 'https://github.com/Q-Master/packets.py'
 
@@ -75,7 +74,6 @@ project = dict(
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     url=URL,
-    py_modules=MODULES,
     packages=PACKAGES,
     install_requires=[i.strip() for i in REQUIRES.splitlines() if i.strip()],
     python_requires='>=3.0, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*',
