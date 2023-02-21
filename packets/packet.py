@@ -2,9 +2,10 @@
 from typing import Optional
 from ._packetbase import PacketBase
 from .field import Field
+from .processors import int32_t
 
 
-__all__ = ['Packet', 'ArrayPacket', 'TablePacket']
+__all__ = ['Packet', 'PacketWithID', 'ArrayPacket', 'TablePacket']
 
 
 class Packet(PacketBase):
@@ -55,6 +56,10 @@ class Packet(PacketBase):
 
     def keys(self):
         return self.__class__.__fields__.keys()
+
+
+class PacketWithID(Packet):
+    packet_id = Field(int32_t, '_', default=0)
 
 
 class ArrayPacket(PacketBase):

@@ -45,7 +45,9 @@ class PacketMeta(ABCMeta):
         namespace['__fields__'] = fields
         namespace['__tags__'] = tags
         namespace['__raw_mapping__'] = {field.info.name: field.info.py_name for field_name, field in fields.items()}
-        namespace['__packet_id__'] = packet_id
+        if 'packet_id' in fields:
+            namespace['__packet_id__'] = packet_id
+            namespace['packet_id'] = fields['packet_id'] = fields['packet_id'].frozen_clone(namespace['__packet_id__'])
         return super(PacketMeta, cls).__new__(cls, cls_name, bases, namespace)
 
 

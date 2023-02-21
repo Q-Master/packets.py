@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import unittest
-from packets import Packet, ArrayPacket, Field
+from packets import Packet, PacketWithID, ArrayPacket, Field
 from packets import string_t, int_t, Array
 
 
@@ -260,6 +260,12 @@ class schema_case(unittest.TestCase):
 
         packet = Child()
         self.assertEqual(packet.dump(), {'field1': 3})
+
+    def test_packetid(self):
+        class WithID(PacketWithID):
+            f1 = Field(int_t, 'field1', required=True)
+        packet = WithID(f1=10)
+        self.assertEquals(packet.dump()['_'], WithID.__packet_id__)
 
 
 if __name__ == '__main__':
