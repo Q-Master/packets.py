@@ -30,7 +30,7 @@ REQUIRES = """
     ujson
 """
 
-VERSION = '0.6.2'
+VERSION = '0.6.3'
 
 
 LONG_DESCRIPTION = """***packets*** - pure Python declarative packes system for serializing/deserializing

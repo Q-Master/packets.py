@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
+from typing import Optional
 from copy import deepcopy
-from ._fieldinfo import FieldInfo, _not_set
+from ._fieldinfo import FieldInfo, _not_set, is_set
 from .processors import Const
 from ._packetbase import FieldBase
 
@@ -10,6 +11,10 @@ __all__ = ['Field']
 
 class Field(FieldBase):
     __instances_created = 0
+
+    @property
+    def info(self):
+        return self._info
 
     def __new__(cls, *args, **kwargs):
         instance = object.__new__(cls)
@@ -29,12 +34,8 @@ class Field(FieldBase):
         """        
         self._info = FieldInfo(processor, name, default, required, override)
 
-    def __cmp__(self, other):
-        return ((self.__number > other.__number) - (self.__number < other.__number))
-
-    @property
-    def info(self):
-        return self._info
+    def name(self, default=None) -> Optional[str]:
+        return self.info.name if is_set(self.info.name) else default
 
     def on_packet_class_create(self, parent_field, field_name):
         """Callback to set field name on packet creation
@@ -87,7 +88,7 @@ class Field(FieldBase):
 
     def clone(self, **kwargs):
         new_info = self._info.copy()
-        new_info.update_params(kwargs)
+        new_info.update_params(**kwargs)
         field = self.__class__()
         field._info = new_info
         return field
@@ -108,3 +109,6 @@ class Field(FieldBase):
     
     def __str__(self):
         return f'<{self.__class__.__name__}("{self._info.py_name}", "{self._info.name}")>'
+
+    def __cmp__(self, other):
+        return ((self.__number > other.__number) - (self.__number < other.__number))

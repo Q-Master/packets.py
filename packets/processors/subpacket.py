@@ -50,7 +50,7 @@ class SubPacket(FieldProcessor):
                 if field_name in fields
             }
         else:
-            return super(SubPacket, self).dump_partial(value)
+            return super().dump_partial(value)
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: {self._packet_type}>'

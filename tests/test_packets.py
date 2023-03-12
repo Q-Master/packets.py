@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import unittest
-from packets import Packet, PacketWithID, ArrayPacket, Field
+from packets import Packet, PacketWithID, ArrayPacket, Field, TablePacket
 from packets import string_t, int_t, Array
 
 
@@ -266,6 +266,52 @@ class schema_case(unittest.TestCase):
             f1 = Field(int_t, 'field1', required=True)
         packet = WithID(f1=10)
         self.assertEquals(packet.dump()['_'], WithID.__packet_id__)
+    
+    def test_subpacket(self):
+        t = {
+            'p': {
+                'f1': 1
+            },
+            'f': 2
+        }
+        class SubPacket(Packet):
+            f1 = Field(int_t)
+        class ParentPacket(Packet):
+            p = Field(SubPacket)
+            f = Field(int_t)
+        packet = ParentPacket.load(t)
+        self.assertIsInstance(packet.p, SubPacket)
+        self.assertEquals(packet.p.f1, 1)
+        self.assertEquals(packet.f, 2)
+    
+    def test_tablepacket(self):
+        t = {
+            'a': {
+                'f1': 1, 
+                'f2': "1"
+            },
+            'b': {
+                'f1': 2,
+                'f2': "2"
+            },
+            'c': {
+                'f1': 3, 
+                'f2': "3"
+            }
+        }
+
+        class TableField(Packet):
+            f1 = Field(int_t)
+            f2 = Field(string_t)
+        
+        class Default(TablePacket):
+            __default_field__ = Field(TableField)
+        
+        packet = Default.load(t)
+        self.assertEquals(packet.a.f1, 1)
+        self.assertEquals(packet.b.f1, 2)
+        self.assertEquals(packet.c.f1, 3)
+
 
 
 if __name__ == '__main__':

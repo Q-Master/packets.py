@@ -21,7 +21,7 @@ class ZipPacked(FieldProcessor):
         Raises:
             TypeError: if other than FieldProcessor or PacketBase ancestors given.
         """        
-        super(ZipPacked, self).__init__()
+        super().__init__()
         if isinstance(element_type, FieldProcessor):
             self._element_type = element_type
         elif issubclass(element_type, PacketBase):

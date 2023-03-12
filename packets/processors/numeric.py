@@ -65,7 +65,7 @@ class NumberAsString(Number):
     """Same as simple `Number`, but serializes itself to string"""
     def check_py(self, value):
         value = self._number_type(float(value))
-        super(NumberAsString, self).check_py(value)
+        super().check_py(value)
 
     check_raw = check_py
 
@@ -80,13 +80,13 @@ class NumberAsString(Number):
 class Percent(Number):
     """Percent number processor"""
     def raw_to_py(self, *args, **kwargs) -> float:
-        result = super(Percent, self).raw_to_py(*args, **kwargs)
+        result = super().raw_to_py(*args, **kwargs)
         if result is not None:
             return result / 100.
         return 0
 
     def py_to_raw(self, value):
-        return super(Percent, self).py_to_raw(value) * 100.
+        return super().py_to_raw(value) * 100.
 
 
 float_t = Number(float)

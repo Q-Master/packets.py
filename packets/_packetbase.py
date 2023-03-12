@@ -2,7 +2,7 @@
 
 import zlib
 import pickle
-from typing import Set, Dict, TypeVar, Generic
+from typing import Set, Dict, TypeVar, Type
 from copy import deepcopy
 from operator import itemgetter
 from collections import Counter
@@ -48,13 +48,13 @@ class PacketMeta(ABCMeta):
         if 'packet_id' in fields:
             namespace['__packet_id__'] = packet_id
             namespace['packet_id'] = fields['packet_id'] = fields['packet_id'].frozen_clone(namespace['__packet_id__'])
-        return super(PacketMeta, cls).__new__(cls, cls_name, bases, namespace)
+        return super().__new__(cls, cls_name, bases, namespace)
 
 
-T = TypeVar('T')
+T = TypeVar('T', bound='PacketBase')
 
 
-class PacketBase(Generic[T], metaclass=PacketMeta):
+class PacketBase(metaclass=PacketMeta):
     """Base class for packets"""
     
     __fields__: Dict[str, FieldBase] = {}
@@ -100,7 +100,7 @@ class PacketBase(Generic[T], metaclass=PacketMeta):
         return NotImplemented
 
     def __init__(self, **kwargs):
-        super(PacketBase, self).__init__()
+        super().__init__()
         strict = kwargs.pop('__strict', True)
         for field_name, field_processor in self.__fields__.items():
             if field_name not in kwargs:
@@ -133,7 +133,7 @@ class PacketBase(Generic[T], metaclass=PacketMeta):
         pass
 
     @classmethod
-    def load(cls, raw_data, strict=True) -> 'PacketBase[T]':
+    def load(cls: Type[T], raw_data, strict=True) -> T:
         """Load packet from iterable (dict, list, etc...)
 
         Args:
@@ -141,7 +141,7 @@ class PacketBase(Generic[T], metaclass=PacketMeta):
             strict (bool, optional): whether to raise on required fields missing. Defaults to True.
 
         Returns:
-            PacketBase[T]: loaded packet
+            T: loaded packet
         """
         pckt = cls(__strict=strict, **cls._parse_raw(raw_data, strict))
         pckt.on_packet_loaded()
@@ -160,7 +160,7 @@ class PacketBase(Generic[T], metaclass=PacketMeta):
         self.on_packet_loaded()
 
     @classmethod
-    def loadz(cls, s) -> 'PacketBase[T]':
+    def loadz(cls: Type[T], s) -> T:
         """Load packet from zip packed source string
 
         Returns:
@@ -169,7 +169,7 @@ class PacketBase(Generic[T], metaclass=PacketMeta):
         return cls.load(json.loads(s.decode('zip')))
 
     @classmethod
-    def loads(cls, s, strict=True) -> 'PacketBase[T]':
+    def loads(cls: Type[T], s, strict=True) -> T:
         return cls.load(json.loads(s), strict)
 
     def on_packet_loaded(self):
@@ -216,13 +216,13 @@ class PacketBase(Generic[T], metaclass=PacketMeta):
         return not self == other
 
     def __setattr__(self, key, value):
-        return super(PacketBase, self).__setattr__(key, value)
+        return super().__setattr__(key, value)
 
     def __delattr__(self, attr):
         if attr in self.__fields__:
             setattr(self, attr, None)
         else:
-            super(PacketBase, self).__delattr__(attr)
+            super().__delattr__(attr)
 
     def __getsetitem(self, path):
         current = self

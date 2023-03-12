@@ -1,9 +1,16 @@
 # -*- coding:utf-8 -*-
 from .processors import FieldProcessor, SubPacket
-from ._packetbase import PacketBase
+from ._packetbase import PacketBase, PacketMeta
+
+
+__all__ = ['FieldInfo']
 
 
 _not_set = object()
+
+
+def is_set(x) -> bool:
+    return x is not _not_set
 
 
 class FieldInfo():
@@ -21,7 +28,7 @@ class FieldInfo():
     def _checkset_processor(self, processor):
         if isinstance(processor, FieldProcessor):
             self.processor = processor
-        elif issubclass(processor, PacketBase):
+        elif isinstance(processor, (PacketMeta,PacketBase)):
             self.processor = SubPacket(processor)
         else:
             raise TypeError(f'wrong processor: {type(processor)}')
@@ -62,7 +69,7 @@ class FieldInfo():
             self.default = default
         if required is not _not_set:
             self.required = required
-        if self.override is not _not_set:
+        if override is not _not_set:
             self.override = override
 
     def update(self, f_info: 'FieldInfo'):
