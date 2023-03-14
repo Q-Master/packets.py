@@ -50,7 +50,7 @@ class Packet(PacketBase):
         for field_name in self.__class__.__fields__:
             yield getattr(self, field_name)
 
-    def items(self):
+    def packet_fields(self):
         for field_name in self.__class__.__fields__:
             yield (field_name, getattr(self, field_name))
 
