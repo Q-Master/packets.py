@@ -119,7 +119,7 @@ class TablePacket(Packet):
             partial_class.__raw_mapping__[nm] = k
         return super(TablePacket, partial_class).load(raw_data, strict)
 
-    def reload(self, raw_data):
+    def update(self, raw_data):
         curr_fields = set(self.__class__.__fields__.keys())
         curr_fields.update(self.__class__.__raw_mapping__.keys())
         new_fields = set(raw_data.keys())
@@ -135,4 +135,4 @@ class TablePacket(Packet):
             self.__class__.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, new)
             self.__class__.__raw_mapping__[nm] = new
-        super().reload(raw_data)
+        super().update(raw_data)
