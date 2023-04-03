@@ -56,3 +56,7 @@ class Hash(FieldProcessor):
             self._key_type.py_to_raw(key): self._element_type.dump_partial(value)
             for key, value in value.items()
         }
+
+    @property
+    def my_type(self):
+        return f'Dict[{self._key_type.my_type}, {self._element_type.my_type}]'

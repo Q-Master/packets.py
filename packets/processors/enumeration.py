@@ -25,6 +25,10 @@ class Enumeration(FieldProcessor):
     def py_to_raw(self, enum_element):
         return enum_element.value
 
+    @property
+    def my_type(self):
+        return 'Enum'
+
 
 class EnumerationByName(FieldProcessor):
     """Enum processor. Stores **name** of enum in serialization"""
@@ -43,3 +47,7 @@ class EnumerationByName(FieldProcessor):
 
     def py_to_raw(self, enum_element):
         return enum_element.name
+
+    @property
+    def my_type(self):
+        return 'Enum'

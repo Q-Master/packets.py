@@ -56,3 +56,7 @@ class Tuple(FieldProcessor):
 
     def dump_partial(self, sequence):
         return tuple(t.dump_partial(v) for v, t in zip(sequence, self._element_types))
+
+    @property
+    def my_type(self):
+        return f'Tuple[{",".join([x.my_type for x in self._element_types])}]'

@@ -54,3 +54,7 @@ class SubPacket(FieldProcessor):
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: {self._packet_type}>'
+
+    @property
+    def my_type(self):
+        return f'{self._packet_type}'

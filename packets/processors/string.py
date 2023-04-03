@@ -41,5 +41,9 @@ class String(FieldProcessor):
         else:
             return py_value
 
+    @property
+    def my_type(self):
+        return 'str'
+
 
 string_t = String()

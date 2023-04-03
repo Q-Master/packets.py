@@ -28,4 +28,9 @@ class Bytes(FieldProcessor):
     def py_to_raw(self, py_value: bytes) -> str:
         return py_value.decode('utf-8')
 
+    @property
+    def my_type(self):
+        return 'bytes'
+
+
 bytes_t = Bytes()

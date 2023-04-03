@@ -24,5 +24,9 @@ class Object(FieldProcessor):
     def py_to_raw(self, value):
         return value
 
+    @property
+    def my_type(self):
+        return 'dict'
+
 
 object_t = Object()

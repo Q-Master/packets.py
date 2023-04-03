@@ -45,3 +45,6 @@ class ZipPacked(FieldProcessor):
         value = self._element_type.py_to_raw(value)
         return bytes(json.dumps(value).encode('zip'))
 
+    @property
+    def my_type(self):
+        return f'{self._element_type.my_type}'

@@ -59,3 +59,7 @@ class Array(FieldProcessor):
 
     def dump_partial(self, sequence: Sequence) -> list:
         return [self._element_type.dump_partial(value) for value in sequence]
+
+    @property
+    def my_type(self):
+        return f'List[{self._element_type.my_type}]'

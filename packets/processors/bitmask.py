@@ -54,3 +54,7 @@ class BitMask(FieldProcessor):
 
     def py_to_raw(self, set_of_elements: set) -> int:
         return sum(self._elements_to_powers[element] for element in set_of_elements)
+
+    @property
+    def my_type(self):
+        return 'set'

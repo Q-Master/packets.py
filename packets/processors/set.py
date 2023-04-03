@@ -47,3 +47,7 @@ class Set(FieldProcessor):
 
     def dump_partial(self, sequence) -> list:
         return [self._element_type.dump_partial(value) for value in sequence]
+
+    @property
+    def my_type(self):
+        return f'Set[{self._element_type.my_type}]'

@@ -56,4 +56,9 @@ class LogLevel(FieldProcessor):
     def py_to_raw(self, py_value: int) -> str:
         return level_to_str[py_value]
 
+    @property
+    def my_type(self):
+        return 'int'
+
+
 log_level_t = LogLevel()

@@ -60,6 +60,10 @@ class Number(FieldProcessor):
     def to_number_as_string(self):
         return NumberAsString(self._number_type, self.min, self.max)
 
+    @property
+    def my_type(self):
+        return self._number_type
+
 
 class NumberAsString(Number):
     """Same as simple `Number`, but serializes itself to string"""

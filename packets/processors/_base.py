@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from typing import Any
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 
 __all__ = ['FieldProcessor']
@@ -11,6 +11,10 @@ class FieldProcessor(metaclass=ABCMeta):
     """
     zero_value: Any = None
     has_mutable_value = True
+
+    @abstractproperty
+    def my_type(cls) -> str:
+        pass
 
     @abstractmethod
     def check_py(self, py_value):

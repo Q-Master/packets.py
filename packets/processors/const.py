@@ -25,3 +25,7 @@ class Const(FieldProcessor):
 
     def py_to_raw(self, py_value):
         return self._value
+
+    @property
+    def my_type(self):
+        return str(type(self._value))

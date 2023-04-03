@@ -34,4 +34,9 @@ class Boolean(FieldProcessor):
     def py_to_raw(self, py_value: bool) -> str:
         return 'true' if py_value else 'false'
 
+    @property
+    def my_type(self):
+        return 'bool'
+
+
 bool_t = Boolean()

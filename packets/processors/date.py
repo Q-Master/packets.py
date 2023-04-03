@@ -41,6 +41,10 @@ class DateAsString(FieldProcessor):
     def py_to_raw(self, py_value: datetime.datetime) -> str:
         return py_value.strftime(self.format_string)
 
+    @property
+    def my_type(self):
+        return 'datetime.datetime'
+
 
 class UnixtimeAsString(FieldProcessor):
     """Unixtime processor. Stores `unixtime` as string using `self.format_string`"""
@@ -71,6 +75,10 @@ class UnixtimeAsString(FieldProcessor):
 
     def py_to_raw(self, py_value: Integral) -> str:
         return datetime.datetime.fromtimestamp(float(py_value)).strftime(self.format_string)
+
+    @property
+    def my_type(self):
+        return 'unixtime'
 
 
 class TimeAsString(FieldProcessor):
@@ -104,6 +112,10 @@ class TimeAsString(FieldProcessor):
     def py_to_raw(self, py_value) -> str:
         return py_value.strftime(self.format_string)
 
+    @property
+    def my_type(self):
+        return 'datetime.time'
+
 
 class DateTime(FieldProcessor):
     """DateTime processor."""
@@ -117,6 +129,10 @@ class DateTime(FieldProcessor):
 
     def py_to_raw(self, value):
         return value
+
+    @property
+    def my_type(self):
+        return 'datetime.datetime'
 
 
 class UnixTime(FieldProcessor):
@@ -139,6 +155,10 @@ class UnixTime(FieldProcessor):
 
     def py_to_raw(self, value: unixtime) -> int:
         return int(value)
+    
+    @property
+    def my_type(self):
+        return 'unixtime'
 
 
 class Time(FieldProcessor):
@@ -153,6 +173,11 @@ class Time(FieldProcessor):
 
     def py_to_raw(self, value):
         return value
+
+    @property
+    def my_type(self):
+        return 'datetime.time'
+
 
 unixtime_t = UnixTime()
 str_datetime_z_t = DateAsString(format_string='%Y-%m-%d %H:%M:%S %z')
