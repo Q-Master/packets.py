@@ -31,9 +31,10 @@ class Field(FieldBase):
             default (Any, optional): default field value. Defaults to _not_set.
             required (bool, optional): flag if the field is required. Defaults to _not_set.
             override (bool, optional): flag if the field is overloaded. Defaults to _not_set.
-        """        
+        """
         self._info = FieldInfo(processor, name, default, required, override)
 
+    @property
     def name(self, default=None) -> Optional[str]:
         return self.info.name if is_set(self.info.name) else default
 
