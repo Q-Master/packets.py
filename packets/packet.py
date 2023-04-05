@@ -112,7 +112,7 @@ class TablePacket(Packet):
         new_fields = set(raw_data.keys())
         new_ones = new_fields - curr_fields
         for k in sorted(new_ones):
-            nm = cls.__default_field__.name(k)
+            nm = cls.__default_field__.name or k
             new_field = partial_class.__default_field__.clone(name=k, override=True)  # pylint: disable=no-member
             partial_class.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, k)
@@ -130,7 +130,7 @@ class TablePacket(Packet):
             del self.__class__.__raw_mapping__[item]
             del self[item]
         for new in new_ones:
-            nm = self.__class__.__default_field__.name(new)
+            nm = self.__class__.__default_field__.name or new
             new_field = self.__class__.__default_field__.clone(name=new, override=True)
             self.__class__.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, new)
