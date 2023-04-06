@@ -59,7 +59,7 @@ class Packet(PacketBase):
 
 
 class PacketWithID(Packet):
-    packet_id = Field(int32_t, '_', default=0)
+    packet_id = Field(int32_t, '_', default=0, override=True)
 
 
 class ArrayPacket(PacketBase):

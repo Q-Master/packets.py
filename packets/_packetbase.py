@@ -25,7 +25,8 @@ class PacketMeta(ABCMeta):
         for base in bases:
             if hasattr(base, '__fields__'):
                 for field_name, field in base.__fields__.items():
-                    assert field_name not in fields, f'Repeated field {field_name} (class {base})'
+                    if field_name != 'packet_id':
+                        assert field_name not in fields, f'Repeated field {field_name} (class {base})'
                     fields[field_name] = field
             if hasattr(base, '__tags__'):
                 tags.update(base.__tags__)
@@ -39,13 +40,13 @@ class PacketMeta(ABCMeta):
         for field_name, count in Counter(field.info.name for field in fields.values()).items():
             if count > 1:
                 raise TypeError(f'Packet has two fields with same name: {field_name}')
-        packet_id = zlib.crc32(bytes('{}__{}'.format('__'.join([f'{base.__module__}__{base.__name__}' for base in bases]), cls_name), 'utf-8'))
-        if packet_id >= (1 << 31):
-            packet_id = packet_id - (1 << 32)
         namespace['__fields__'] = fields
         namespace['__tags__'] = tags
         namespace['__raw_mapping__'] = {field.info.name: field.info.py_name for field_name, field in fields.items()}
         if 'packet_id' in fields:
+            packet_id = zlib.crc32(bytes('{}__{}'.format('__'.join([f'{base.__module__}__{base.__name__}' for base in bases]), cls_name), 'utf-8'))
+            if packet_id >= (1 << 31):
+                packet_id = packet_id - (1 << 32)
             namespace['__packet_id__'] = packet_id
             namespace['packet_id'] = fields['packet_id'] = fields['packet_id'].frozen_clone(namespace['__packet_id__'])
         return super().__new__(cls, cls_name, bases, namespace)
