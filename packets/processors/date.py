@@ -138,7 +138,7 @@ class DateTime(FieldProcessor):
 class UnixTime(FieldProcessor):
     """Unixtime processor. Stores `unixtime` as int"""
     def check_py(self, value: unixtime):
-        assert isinstance(value, unixtime), (value, type(value))
+        assert isinstance(value, (unixtime, int)), (value, type(value))
         if value < 0:
             raise ValueError(f'{value} < 0. Unixtime cant be negative.')
         if value > 4294967295:
