@@ -1,20 +1,23 @@
 # -*- coding:utf-8 -*-
+from typing import Any
 
 try:
     import ujson
+    from json import JSONEncoder
 
-    class json:
-        @staticmethod
-        def dumps(obj, ensure_ascii=False, *args, **kwargs):
-            return ujson.dumps(obj, ensure_ascii=ensure_ascii, *args, **kwargs)
+    def dumps(obj, ensure_ascii=False, *args, **kwargs):
+        return ujson.dumps(obj, ensure_ascii=ensure_ascii, *args, **kwargs)
 
-        @staticmethod
-        def loads(s, *args, **kwargs):
-            return ujson.loads(s, *args, **kwargs)
+    def loads(s, *args, **kwargs):
+        return ujson.loads(s, *args, **kwargs)
 
-        @staticmethod
-        def load(s, *args, **kwargs):
-            return ujson.load(s, *args, **kwargs)
+    def load(s, *args, **kwargs):
+        return ujson.load(s, *args, **kwargs)
+    
+    class UJSONEncoder(JSONEncoder):
+        def encode(self, o: Any) -> str:
+            return ujson.encode(o)
+        
 except ImportError:
-    import json # type: ignore[no-redef]
-    json._default_encoder.ensure_ascii = False # type: ignore[attr-defined]
+    from json import * # type: ignore
+    _default_encoder.ensure_ascii = False # type: ignore

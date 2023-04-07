@@ -3,7 +3,7 @@ from ._base import FieldProcessor
 from .subpacket import SubPacket
 from ._types import SubElementTyping
 from .._packetbase import PacketBase
-from .._json import json
+from .. import json
 
 
 __all__ = ['ZipPacked']
