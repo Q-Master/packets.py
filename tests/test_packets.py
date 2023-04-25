@@ -261,48 +261,6 @@ class schema_case(unittest.TestCase):
         packet = Child()
         self.assertEqual(packet.dump(), {'field1': 3})
 
-    def test_packetid(self):
-        class WithID(PacketWithID):
-            f1 = Field(int_t, 'field1', required=True)
-        packet = WithID(f1=10)
-        self.assertEquals(packet.dump()['_'], WithID.__packet_id__)
-    
-    def test_2packetid(self):
-        class WithID1(PacketWithID):
-            f1 = Field(int_t, 'field1', required=True)
-        
-        class WithID2(WithID1):
-            f2 = Field(int_t, 'field2', required=True)
-
-        packet = WithID1(f1=10)
-        packet2 = WithID2(f1=10, f2=20)
-        self.assertNotEquals(WithID1.__packet_id__, WithID2.__packet_id__)
-        self.assertEquals(packet.dump()['_'], WithID1.__packet_id__)
-        self.assertEquals(packet2.dump()['_'], WithID2.__packet_id__)
-
-    def test_2packetidinhertance(self):
-        class WithoutID(Packet):
-            f1 = Field(int_t, 'field1', required=True)
-        
-        class WithID2(WithoutID, PacketWithID):
-            f2 = Field(int_t, 'field2', required=True)
-
-        packet2 = WithID2(f1=10, f2=20)
-        self.assertEquals(packet2.dump()['_'], WithID2.__packet_id__)
-
-    def test_2packetidinhertanceid(self):
-        class WithID1(PacketWithID):
-            f1 = Field(int_t, 'field1', required=True)
-        
-        class WithID2(WithID1, PacketWithID):
-            f2 = Field(int_t, 'field2', required=True)
-
-        packet = WithID1(f1=10)
-        packet2 = WithID2(f1=10, f2=20)
-        self.assertNotEquals(WithID1.__packet_id__, WithID2.__packet_id__)
-        self.assertEquals(packet.dump()['_'], WithID1.__packet_id__)
-        self.assertEquals(packet2.dump()['_'], WithID2.__packet_id__)
-
     def test_subpacket(self):
         t = {
             'p': {

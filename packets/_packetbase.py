@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-
-import zlib
 import pickle
 from typing import Set, Dict, TypeVar, Type
 from copy import deepcopy
@@ -43,14 +41,7 @@ class PacketMeta(ABCMeta):
         namespace['__fields__'] = fields
         namespace['__tags__'] = tags
         namespace['__raw_mapping__'] = {field.info.name: field.info.py_name for field_name, field in fields.items()}
-        if 'packet_id' in fields:
-            packet_id = zlib.crc32(bytes('{}__{}'.format('__'.join([f'{base.__module__}__{base.__name__}' for base in bases]), cls_name), 'utf-8'))
-            if packet_id >= (1 << 31):
-                packet_id = packet_id - (1 << 32)
-            namespace['__packet_id__'] = packet_id
-            namespace['packet_id'] = fields['packet_id'] = fields['packet_id'].frozen_clone(namespace['__packet_id__'])
         return super().__new__(cls, cls_name, bases, namespace)
-
 
 T = TypeVar('T', bound='PacketBase')
 

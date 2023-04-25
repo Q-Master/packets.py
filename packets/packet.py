@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 from typing import Optional
+import zlib
 from ._packetbase import PacketBase
 from .field import Field
-from .processors import int32_t
 
 
 __all__ = ['Packet', 'PacketWithID', 'ArrayPacket', 'TablePacket']
@@ -59,7 +59,12 @@ class Packet(PacketBase):
 
 
 class PacketWithID(Packet):
-    packet_id = Field(int32_t, '_', default=0, override=True)
+    @classmethod
+    def calc_packet_id(cls) -> int:
+        packet_id = zlib.crc32(bytes('{}__{}'.format('__'.join([f'{base.__module__}__{base.__name__}' for base in cls.__bases__]), cls.__name__), 'utf-8'))
+        if packet_id >= (1 << 31):
+            packet_id = packet_id - (1 << 32)
+        return packet_id
 
 
 class ArrayPacket(PacketBase):
