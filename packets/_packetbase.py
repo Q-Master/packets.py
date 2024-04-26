@@ -52,7 +52,7 @@ class PacketBase(metaclass=PacketMeta):
     __fields__: Dict[str, FieldBase] = {}
     __tags__: Set[str] = set()
     __raw_mapping__: Dict[str, str] = {}
-    __initial_values = None
+    __modified = None
 
     def __repr__(self):
         return '<%s>' % (', '.join(
@@ -100,6 +100,7 @@ class PacketBase(metaclass=PacketMeta):
             else:
                 value = kwargs.pop(field_name)
             setattr(self, field_name, value)
+        self.__modified = False
         assert not kwargs, f'Extra arguments: {kwargs}'
 
     def __setstate__(self, state):
@@ -109,6 +110,7 @@ class PacketBase(metaclass=PacketMeta):
             state (dict): restored state
         """
         self.__dict__.update(state)
+        self.__modified = False
 
     def __getstate__(self):
         """Returns state for current packet
@@ -192,6 +194,15 @@ class PacketBase(metaclass=PacketMeta):
         """        
         return json.dumps(self.dump(), **kwargs)
 
+    def is_modified(self):
+        #type: () -> bool
+        modified = self.__modified
+        for k in self.__fields__:
+            attr = getattr(self, k)
+            if isinstance(attr, PacketBase):
+                modified = modified or attr.is_modified()
+        return modified
+    
     def __eq__(self, other):
         if isinstance(other, PacketBase):
             if self.__class__ != other.__class__:
@@ -208,6 +219,8 @@ class PacketBase(metaclass=PacketMeta):
         return not self == other
 
     def __setattr__(self, key, value):
+        if key in self.__fields__:
+            self.__modified = True
         return super().__setattr__(key, value)
 
     def __delattr__(self, attr):

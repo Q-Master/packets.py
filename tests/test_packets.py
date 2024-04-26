@@ -306,6 +306,24 @@ class schema_case(unittest.TestCase):
         self.assertEquals(packet.b.f1, 2)
         self.assertEquals(packet.c.f1, 3)
 
+    def test_modified(self):
+        t = {
+            'p': {
+                'f1': 1
+            },
+            'f': 2
+        }
+        class SubPacket(Packet):
+            f1 = Field(int_t)
+        class ParentPacket(Packet):
+            p = Field(SubPacket)
+            f = Field(int_t)
+        packet = ParentPacket.load(t)
+        self.assertEqual(packet.is_modified(), False)
+        packet.f1 = 2
+        self.assertEqual(packet.is_modified(), False)        
+        packet.p.f1 = 2
+        self.assertEqual(packet.is_modified(), True)
 
 
 if __name__ == '__main__':
