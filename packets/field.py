@@ -35,8 +35,8 @@ class Field(FieldBase):
         self._info = FieldInfo(processor, name, default, required, override)
 
     @property
-    def name(self, default=None) -> Optional[str]:
-        return self.info.name if is_set(self.info.name) else default
+    def name(self) -> str:
+        return self._info.name
 
     def on_packet_class_create(self, parent_field, field_name):
         """Callback to set field name on packet creation
