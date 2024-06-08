@@ -57,6 +57,12 @@ class Packet(PacketBase):
     def keys(self):
         return self.__class__.__fields__.keys()
 
+    def get(self, field_name: str, default=None):
+        if field_name in self.keys():
+            return getattr(self, field_name)
+        else:
+            return default
+
 
 class PacketWithID(Packet):
     @classmethod
