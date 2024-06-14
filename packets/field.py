@@ -36,7 +36,7 @@ class Field(FieldBase):
 
     @property
     def name(self) -> str:
-        return self._info.name
+        return self._info.name if is_set(self.info.name) else None
 
     def on_packet_class_create(self, parent_field, field_name):
         """Callback to set field name on packet creation
