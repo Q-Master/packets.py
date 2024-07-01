@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from typing import Any, List
 import pickle
 from typing import Set, Dict, TypeVar, Type
 from copy import deepcopy
@@ -229,7 +230,7 @@ class PacketBase(metaclass=PacketMeta):
         else:
             super().__delattr__(attr)
 
-    def __getsetitem(self, path):
+    def __getsetitem(self, path: List[str]) -> Any:
         current = self
         for path_element in path:
             if isinstance(current, PacketBase):
@@ -252,7 +253,7 @@ class PacketBase(metaclass=PacketMeta):
                 break
         return current
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         path = key.split('.')
         return self.__getsetitem(path)
 
