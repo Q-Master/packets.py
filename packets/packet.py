@@ -37,16 +37,6 @@ class Packet(PacketBase):
                 js_dict[field.info.name if raw else field_name] = raw_value
         return js_dict
 
-    def dump_partial(self, field_paths: List[str]) -> dict:
-        result = {}
-        for path in field_paths:
-            s_path = field_paths.split('.')
-            field = self.__fields__.get(s_path[-1], None)
-            if field:
-                value = self.__getsetitem(s_path)
-                result[path] = field.py_to_raw(value)
-        return result
-
     # Temporarily commenting out, yet not working solution
     #@classmethod
     #def dump_partial(cls, partial_data):

@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
-from typing import Any, List
+from typing import Any, List, Set, Dict, TypeVar, Type
 import pickle
-from typing import Set, Dict, TypeVar, Type
 from copy import deepcopy
 from operator import itemgetter
 from collections import Counter
@@ -53,9 +52,9 @@ class PacketBase(metaclass=PacketMeta):
     __fields__: Dict[str, FieldBase] = {}
     __tags__: Set[str] = set()
     __raw_mapping__: Dict[str, str] = {}
-    __modified = None
+    __modified = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<%s>' % (', '.join(
                 ': '.join((field_name, str(getattr(self, field_name)))) for field_name in self.__fields__ if getattr(self, field_name) is not None
             )
@@ -71,7 +70,7 @@ class PacketBase(metaclass=PacketMeta):
         return cls.__fields__.keys()
 
     @classmethod
-    def escaped_fields_names(cls):
+    def escaped_fields_names(cls) -> List[str]:
         """Returns escaped list of field names
 
         Returns:
@@ -92,7 +91,7 @@ class PacketBase(metaclass=PacketMeta):
             pass
         return NotImplemented
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
         strict = kwargs.pop('__strict', True)
         for field_name, field_processor in self.__fields__.items():
@@ -194,6 +193,20 @@ class PacketBase(metaclass=PacketMeta):
             str: serialized packet
         """        
         return json.dumps(self.dump(), **kwargs)
+
+    def dump_partial(self, field_paths: List[str]) -> dict:
+        result = {}
+        for path in field_paths:
+            s_path = field_paths.split('.')
+            field = self.__fields__.get(s_path[-1], None)
+            if field:
+                value = self.__getsetitem(s_path)
+                result[path] = field.py_to_raw(value)
+        return result
+
+    def update_partial(self, field_pairs: dict[str, Any]) -> None:
+        for k, v in field_pairs.items():
+            self[k] = v
 
     def is_modified(self):
         #type: () -> bool
