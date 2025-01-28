@@ -5,7 +5,7 @@ from ._packetbase import *
 from .field import *
 from .processors import *
 
-__version__ = '0.8.5'
+__version__ = '0.8.6'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'
