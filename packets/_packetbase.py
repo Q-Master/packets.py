@@ -28,13 +28,10 @@ class PacketMeta(ABCMeta):
                     fields[field_name] = field
             if hasattr(base, '__tags__'):
                 tags.update(base.__tags__)
-        not_inherited_fields = {
-            field_name: field for field_name, field in namespace.items()
-            if isinstance(field, FieldBase) and field_name != '__default_field__'
-        }
-        for field_name, field in sorted(not_inherited_fields.items(), key=itemgetter(0)):
-            field.on_packet_class_create(fields.get(field_name), field_name)
-            fields[field_name] = field
+        for field_name, field in namespace.items():
+            if isinstance(field, FieldBase) and field_name != '__default_field__':
+                field.on_packet_class_create(fields.get(field_name), field_name)
+                fields[field_name] = field
         for field_name, count in Counter(field.info.name for field in fields.values()).items():
             if count > 1:
                 raise TypeError(f'Packet has two fields with same name: {field_name}')
