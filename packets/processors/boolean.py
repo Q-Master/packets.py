@@ -14,7 +14,7 @@ class Boolean(FieldProcessor):
         assert isinstance(value, bool), (value, type(value))
 
     def check_raw(self, value: BooleanRawTyping):
-        assert isinstance(value, (str, Integral)), (value, type(value))
+        assert isinstance(value, (str, Integral, bool)), (value, type(value))
 
     def raw_to_py(self, raw_value: BooleanRawTyping, strict: bool) -> bool:
         if isinstance(raw_value, str):
@@ -31,8 +31,8 @@ class Boolean(FieldProcessor):
             processed_value = bool(raw_value)
         return processed_value
 
-    def py_to_raw(self, py_value: bool) -> str:
-        return 'true' if py_value else 'false'
+    def py_to_raw(self, py_value: bool) -> bool:
+        return True if py_value else False
 
     @property
     def my_type(self):

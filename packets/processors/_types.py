@@ -12,7 +12,7 @@ NumberTyping = Union[int, float]
 StringTypes = (str, bytes)
 StringTypesTyping = Union[str, bytes]
 BooleanType = bool
-BooleanRawTyping = Union[str, int]
+BooleanRawTyping = Union[str, int, bool]
 NoneType = type(None)
 
 class unixtime(int):
