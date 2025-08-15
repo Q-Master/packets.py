@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
 from . import _json as json
 from ._packetbase import PacketBase
+from ._fieldprocessorbase import FieldProcessor
 from .packet import Packet, TablePacket, ArrayPacket, PacketWithID
 from .field import *
 
-__version__ = '0.9.1'
+__version__ = '0.9.2'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'
