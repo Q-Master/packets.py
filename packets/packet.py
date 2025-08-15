@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
-from typing import Optional, List, Any
+from typing import Optional, Type, Self, TYPE_CHECKING, Union, get_origin, get_args
 import zlib
+import types
 from ._packetbase import PacketBase
 from .field import Field
 
@@ -23,8 +24,8 @@ class Packet(PacketBase):
     def _parse_raw(cls, raw_js, strict=True):
         attrs = {}
         for field_name, field in cls.__fields__.items():
-            if field.info.name in raw_js.keys():
-                raw_value = raw_js.get(field.info.name, None)
+            if field.name in raw_js.keys():
+                raw_value = raw_js.get(field.name, None)
                 field_value = field.raw_to_py(raw_value, strict=strict)
                 attrs[field_name] = field_value
         return attrs
@@ -34,7 +35,7 @@ class Packet(PacketBase):
         for field_name, field in self.__fields__.items():
             raw_value = field.py_to_raw(getattr(self, field_name))
             if raw_value is not None:
-                js_dict[field.info.name if raw else field_name] = raw_value
+                js_dict[field.name if raw else field_name] = raw_value
         return js_dict
 
     # Temporarily commenting out, yet not working solution
@@ -120,14 +121,15 @@ class TablePacket(Packet):
         namespace = {k: v for k, v in cls.__dict__.items() if k not in curr_fields}
         namespace.update({fieldname: field.clone(override=False) for fieldname, field in cls.__fields__.items()})
         namespace.update({'__default_field__': cls.__default_field__.clone(override=False)})
-        partial_class = type(cls.__name__, cls.__bases__, namespace)
+        partial_class: Type[Self] = types.new_class(cls.__name__, cls.__bases__, exec_body=lambda ns: ns.update(namespace))
         new_fields = set(raw_data.keys())
         new_ones = new_fields - curr_fields
         for k in raw_data.keys():
             if k not in new_ones:
                 continue
             nm = cls.__default_field__.name or k
-            new_field = partial_class.__default_field__.clone(name=k, override=True)  # pylint: disable=no-member
+            assert partial_class.__default_field__ is not None
+            new_field = partial_class.__default_field__.clone(name=k, override=True)
             partial_class.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, k)
             partial_class.__raw_mapping__[nm] = k
@@ -146,9 +148,26 @@ class TablePacket(Packet):
         for new in raw_data.keys():
             if new not in new_ones:
                 continue
+            assert self.__class__.__default_field__ is not None
             nm = self.__class__.__default_field__.name or new
             new_field = self.__class__.__default_field__.clone(name=new, override=True)
             self.__class__.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, new)
             self.__class__.__raw_mapping__[nm] = new
         super().update(raw_data)
+
+    if TYPE_CHECKING:
+        def __getattribute__(self, name: str):
+                try:
+                    res = super().__getattribute__(name)
+                except AttributeError:
+                    cls = super().__getattribute__('__class__')
+                    if name not in cls.__fields__:
+                        print(name)
+                        df = super().__getattribute__('__default_field__')
+                        assert df is not None 
+                        typ = df.info.my_type
+                        if get_origin(typ) is Union:
+                            typ = get_args(typ)[0]
+                        res = typ()
+                return res

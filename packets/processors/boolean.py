@@ -1,7 +1,7 @@
 # coding=utf-8
 from numbers import Integral
 from ._types import BooleanRawTyping
-from ._base import FieldProcessor
+from .._fieldprocessorbase import FieldProcessor 
 
 
 __all__ = ['Boolean', 'bool_t']
@@ -36,7 +36,7 @@ class Boolean(FieldProcessor):
 
     @property
     def my_type(self):
-        return 'bool'
+        return bool
 
 
 bool_t = Boolean()

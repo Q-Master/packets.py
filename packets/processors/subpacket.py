@@ -1,16 +1,20 @@
 # -*- coding:utf-8 -*-
-from typing import Type
-from collections.abc import Mapping
+from typing import Type, TypeVar, Generic
+from collections.abc import Mapping, MutableMapping
 from .._packetbase import PacketBase
-from ._base import FieldProcessor
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['SubPacket']
 
 
-class SubPacket(FieldProcessor):
+T = TypeVar('T', bound=PacketBase)
+
+
+class SubPacket(Generic[T], FieldProcessor):
     """Processor for underlying packets"""
     has_flat_value = True
+    _packet_type: Type[T]
 
     @property
     def zero_value(self):
@@ -20,7 +24,7 @@ class SubPacket(FieldProcessor):
     def packet_type(self):
         return self._packet_type
 
-    def __init__(self, packet: Type[PacketBase]):
+    def __init__(self, packet: Type[T]):
         """Constructor
 
         Args:
@@ -29,21 +33,21 @@ class SubPacket(FieldProcessor):
         assert issubclass(packet, PacketBase)
         self._packet_type = packet
 
-    def check_py(self, py_value):
+    def check_py(self, py_value: T):
         assert isinstance(py_value, self._packet_type), (py_value, type(py_value), self._packet_type)
 
     def check_raw(self, raw_value):
         pass
 
-    def raw_to_py(self, raw_value, strict) -> PacketBase:
+    def raw_to_py(self, raw_value: Mapping | MutableMapping, strict) -> T:
         return self._packet_type.load(raw_value, strict)
 
-    def py_to_raw(self, value: PacketBase) -> dict:
+    def py_to_raw(self, value: T) -> dict | None:
         return value.dump()
 
-    def dump_partial(self, value):
+    def dump_partial(self, value: Mapping | MutableMapping):
         fields = self._packet_type.__fields__
-        if isinstance(value, Mapping):
+        if isinstance(value, (Mapping, MutableMapping)):
             return {
                 fields[field_name].name: fields[field_name].dump_partial(value)
                 for field_name, value in value.items()
@@ -57,4 +61,4 @@ class SubPacket(FieldProcessor):
 
     @property
     def my_type(self):
-        return f'{self._packet_type}'
+        return self._packet_type

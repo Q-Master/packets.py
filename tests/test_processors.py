@@ -38,6 +38,7 @@ class ProcessorsTestCase(unittest.TestCase):
         processor = Hash(int_t, string_t)
         self.assertEqual({1: '2', 3: '4'}, processor.raw_to_py({'1.0': '2', '3': '4'}, True))
         self.assertEqual({'1': '2', '3': '4'}, processor.py_to_raw({'1': '2', '3': '4'}))
+        processor.my_type
 
     def test_array(self):
         processor = Array(int_t, 3)

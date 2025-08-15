@@ -22,18 +22,19 @@ The `packets` requires `ujson`, but it is not a strict requirement.
 
 
 ```python
-from packets import Packet, Field, int_t, string_t
+from typing import Optional
+from packets import Packet, makeField, int_t, string_t
 
 class Parent(Packet):
-    field1 = Field(int_t, 'a', required=True)
+    field1: int = makeField(int_t, 'a', required=True)
 
 
 class Child(Parent):
-    field1 = Field(default=3, override=True)
+    field1: int = makeField(default=3, override=True)
 
 class Show(Packet):
-    field1 = Field(int_t, required=True)
-    field2 = Field(string_t)
+    field1: int = Field(int_t, required=True)
+    field2: Optional[str] = Field(string_t)
 
 parent = Parent(field1=2)
 packet = Child()

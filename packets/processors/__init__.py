@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-from ._base import *
-from ._types import *
 from .numeric import *
 from .boolean import *
 from .subpacket import *

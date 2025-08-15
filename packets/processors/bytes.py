@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from ._base import FieldProcessor
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['Bytes', 'bytes_t']
@@ -30,7 +30,7 @@ class Bytes(FieldProcessor):
 
     @property
     def my_type(self):
-        return 'bytes'
+        return bytes
 
 
 bytes_t = Bytes()

@@ -1,37 +1,43 @@
 # -*- coding:utf-8 -*-
-from typing import Any, List, Set, Dict, TypeVar, Type
+from typing import Any, List, Set, Dict, TypeVar, Type, Self, Sequence
 import pickle
 from copy import deepcopy
-from operator import itemgetter
 from collections import Counter
 from abc import ABCMeta, abstractmethod
 from . import json
+from ._fieldbase import FieldBase
 
-
-__all__ = ['PacketBase', 'FieldBase']
-
-
-class FieldBase():
-    pass
+__all__ = ['PacketBase']
 
 
 class PacketMeta(ABCMeta):
     def __new__(cls, cls_name, bases, namespace):
         fields = {}
         tags = set(namespace.get('packet_tags', []))
+        annotations: dict = namespace.get('__annotations__', {}) 
 
         for base in bases:
             if hasattr(base, '__fields__'):
                 for field_name, field in base.__fields__.items():
-                    if field_name != 'packet_id':
+                    if field_name != 'packet_id' and field.info.is_override:
                         assert field_name not in fields, f'Repeated field {field_name} (class {base})'
                     fields[field_name] = field
             if hasattr(base, '__tags__'):
                 tags.update(base.__tags__)
+        to_delete: List[str] = []
         for field_name, field in namespace.items():
             if isinstance(field, FieldBase) and field_name != '__default_field__':
                 field.on_packet_class_create(fields.get(field_name), field_name)
                 fields[field_name] = field
+                if field_name not in annotations.keys():
+                    annotations[field_name] = field.info.my_type
+                if (field.info.has_default()):
+                    namespace[field_name] = field.info.default
+                else:
+                    to_delete.append(field_name)
+        for name in to_delete:
+            del namespace[name]
+        namespace['__annotations__'] = annotations
         for field_name, count in Counter(field.info.name for field in fields.values()).items():
             if count > 1:
                 raise TypeError(f'Packet has two fields with same name: {field_name}')
@@ -39,6 +45,7 @@ class PacketMeta(ABCMeta):
         namespace['__tags__'] = tags
         namespace['__raw_mapping__'] = {field.info.name: field.info.py_name for field_name, field in fields.items()}
         return super().__new__(cls, cls_name, bases, namespace)
+
 
 T = TypeVar('T', bound='PacketBase')
 
@@ -119,7 +126,7 @@ class PacketBase(metaclass=PacketMeta):
         return state
 
     @abstractmethod
-    def _parse_raw(self, raw_data, strict=True):
+    def _parse_raw(self, raw_data, strict=True) -> dict:
         """rtype: dict"""
         pass
 
@@ -134,7 +141,7 @@ class PacketBase(metaclass=PacketMeta):
         Returns:
             T: loaded packet
         """
-        pckt = cls(__strict=strict, **cls._parse_raw(raw_data, strict))
+        pckt = cls(__strict=strict, **(cls._parse_raw(raw_data, strict)))
         pckt.on_packet_loaded()
         return pckt
 
@@ -175,7 +182,7 @@ class PacketBase(metaclass=PacketMeta):
         """        
         pass
 
-    def dumpz(self) -> str:
+    def dumpz(self) -> bytes:
         """Serialize packet to zipped bytes
 
         Returns:
@@ -194,7 +201,7 @@ class PacketBase(metaclass=PacketMeta):
     def dump_partial(self, field_paths: List[str]) -> dict:
         result = {}
         for path in field_paths:
-            s_path = field_paths.split('.')
+            s_path = path.split('.')
             field = self.__fields__.get(s_path[-1], None)
             if field:
                 value = self.__getsetitem(s_path)
@@ -205,8 +212,7 @@ class PacketBase(metaclass=PacketMeta):
         for k, v in field_pairs.items():
             self[k] = v
 
-    def is_modified(self):
-        #type: () -> bool
+    def is_modified(self) -> bool:
         modified = self.__modified
         for k in self.__fields__:
             attr = getattr(self, k)
@@ -214,7 +220,7 @@ class PacketBase(metaclass=PacketMeta):
                 modified = modified or attr.is_modified()
         return modified
     
-    def __eq__(self, other):
+    def __eq__(self, other: Self) -> bool:
         if isinstance(other, PacketBase):
             if self.__class__ != other.__class__:
                 return False
@@ -226,19 +232,19 @@ class PacketBase(metaclass=PacketMeta):
             return True
         return False
 
-    def __ne__(self, other):
+    def __ne__(self, other: Self) -> bool:
         return not self == other
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any):
         if key in self.__fields__:
             self.__modified = True
         return super().__setattr__(key, value)
 
-    def __delattr__(self, attr):
-        if attr in self.__fields__:
-            setattr(self, attr, None)
+    def __delattr__(self, key: str):
+        if key in self.__fields__:
+            setattr(self, key, None)
         else:
-            super().__delattr__(attr)
+            super().__delattr__(key)
 
     def __getsetitem(self, path: List[str]) -> Any:
         current = self
@@ -267,7 +273,7 @@ class PacketBase(metaclass=PacketMeta):
         path = key.split('.')
         return self.__getsetitem(path)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any):
         path = key.split('.')
 
         current = self
@@ -281,31 +287,31 @@ class PacketBase(metaclass=PacketMeta):
                     current = current[path_element]
                 else:
                     try:
-                        key = int(path_element)
+                        int_key = int(path_element)
                     except ValueError:
                         current = current.setdefault(path_element, {})  # pylint: disable=no-member
                     else:
-                        current = current.setdefault(key, {})  # pylint: disable=no-member
+                        current = current.setdefault(int_key, {})  # pylint: disable=no-member
             else:
                 raise RuntimeError(f'Unsupported type {current} ({type(current)})')
 
         tail = path[-1]
         if isinstance(current, PacketBase):
             setattr(current, current.__raw_mapping__[tail], value)
-        elif isinstance(current, (list, tuple)):
+        elif isinstance(current, list):
             current[int(tail)] = value
         else:
             if tail in current:
                 current[tail] = value
             else:
                 try:
-                    key = int(tail)
+                    int_key = int(tail)
                 except ValueError:
                     current[tail] = value
                 else:
-                    current[key] = value
+                    current[int_key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         path = key.split('.')
         current = self.__getsetitem(path[:-1])
 
@@ -322,18 +328,21 @@ class PacketBase(metaclass=PacketMeta):
                 del current[tail]
             else:
                 try:
-                    key = int(tail)
+                    int_key = int(tail)
                 except ValueError:
                     pass
                 else:
-                    if key in current:
-                        del current[key]
+                    if int_key in current:
+                        del current[int_key]
 
-    def __deepcopy__(self, memo):  # pylint: disable=method-hidden
+    def __deepdummy__(self, memo):
+        pass
+
+    def __deepcopy__(self, memo):
         if 'dont_cpickle' in self.__tags__:
-            self.__deepcopy__ = None
+            deep_backup, self.__deepcopy__ = self.__deepcopy__, self.__deepdummy__
             newone = deepcopy(self, memo)
-            self.__deepcopy__ = PacketBase.__deepcopy__
+            self.__deepcopy__ = deep_backup
             return newone
         else:
             return pickle.loads(pickle.dumps(self, protocol=-1))

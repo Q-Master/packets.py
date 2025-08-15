@@ -1,9 +1,9 @@
 # -*- coding:utf-8 -*-
-from typing import Iterable
-from ._base import FieldProcessor
+from typing import Iterable, Tuple as TypingTuple, List
 from ._types import SubElementTyping
 from .subpacket import SubPacket
 from .._packetbase import PacketBase
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['Tuple']
@@ -26,7 +26,7 @@ class Tuple(FieldProcessor):
         Raises:
             TypeError: if other than FieldProcessor or PacketBase ancestors given.
         """        
-        self._element_types = []
+        self._element_types: List[FieldProcessor] = []
         for element_type in element_types:
             if isinstance(element_type, FieldProcessor):
                 self._element_types.append(element_type)
@@ -59,4 +59,5 @@ class Tuple(FieldProcessor):
 
     @property
     def my_type(self):
-        return f'Tuple[{",".join([x.my_type for x in self._element_types])}]'
+        alltypes = [x.my_type for x in self._element_types]
+        return TypingTuple[*alltypes]

@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
-from . import FieldProcessor
+from typing import Any
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['Variant', 'any_t']
@@ -25,7 +26,7 @@ class Variant(FieldProcessor):
 
     @property
     def my_type(self):
-        return 'Any'
+        return Any
 
 
 any_t = Variant()

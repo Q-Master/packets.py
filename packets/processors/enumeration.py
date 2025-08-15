@@ -1,16 +1,21 @@
 # -*- coding:utf-8 -*-
-from enum import EnumMeta
-from ._base import FieldProcessor
+from typing import TypeVar, Type, Generic
+from enum import EnumMeta, Enum
 from ._types import StringTypes
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['Enumeration', 'EnumerationByName']
 
 
-class Enumeration(FieldProcessor):
+T = TypeVar('T', bound=Enum)
+
+
+class Enumeration(Generic[T], FieldProcessor):
     """Enum processor. Stores **value** of enum in serialization"""
-    def __init__(self, enum):
-        assert isinstance(enum, EnumMeta)
+
+    def __init__(self, enum: Type[T]):
+        assert issubclass(enum, Enum)
         self._enum = enum
 
     def check_py(self, py_value):
@@ -26,13 +31,13 @@ class Enumeration(FieldProcessor):
         return enum_element.value
 
     @property
-    def my_type(self):
-        return 'Enum'
+    def my_type(self) -> Type[T]:
+        return self._enum
 
 
-class EnumerationByName(FieldProcessor):
+class EnumerationByName(Generic[T], FieldProcessor):
     """Enum processor. Stores **name** of enum in serialization"""
-    def __init__(self, enum):
+    def __init__(self, enum: Type[T]):
         assert isinstance(enum, EnumMeta)
         self._enum = enum
 
@@ -49,5 +54,5 @@ class EnumerationByName(FieldProcessor):
         return enum_element.name
 
     @property
-    def my_type(self):
-        return 'Enum'
+    def my_type(self) -> Type[T]:
+        return self._enum

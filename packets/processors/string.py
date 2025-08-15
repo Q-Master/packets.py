@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
-from ._base import FieldProcessor
-from ._types import StringTypes
+from ._types import StringTypes, StringTypesTyping
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['String', 'string_t']
@@ -22,12 +22,15 @@ class String(FieldProcessor):
         self._trim = trim
         assert not (trim and max_length is None)
 
-    def check_py(self, value):
+    def check_py(self, value: StringTypesTyping):
         assert isinstance(value, StringTypes), (value, type(value))
         if not self._trim and (self._max_length is not None) and len(value) > self._max_length:
             raise ValueError(f'String is too long {len(value)} (max {self._max_length})')
 
-    check_raw = check_py
+    def check_raw(self, value: StringTypesTyping):
+        assert isinstance(value, StringTypes), (value, type(value))
+        if not self._trim and (self._max_length is not None) and len(value) > self._max_length:
+            raise ValueError(f'String is too long {len(value)} (max {self._max_length})')
 
     def raw_to_py(self, raw_value: str, strict: bool) -> str:
         if self._trim:
@@ -43,7 +46,7 @@ class String(FieldProcessor):
 
     @property
     def my_type(self):
-        return 'str'
+        return str
 
 
 string_t = String()

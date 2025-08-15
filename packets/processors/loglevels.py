@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import logging
-from ._base import FieldProcessor
 from ._types import StringTypes, StringTypesTyping
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['LogLevel', 'log_level_t']
@@ -46,11 +46,7 @@ class LogLevel(FieldProcessor):
         assert rval.lower() in str_to_level.keys()
 
     def raw_to_py(self, raw_value: StringTypesTyping, strict: bool) -> int:
-        rval: str
-        if isinstance(raw_value, bytes):
-            rval = raw_value.decode('utf-8')
-        else:
-            rval = raw_value
+        rval = raw_value if isinstance(raw_value, str) else raw_value.decode('utf8')
         return str_to_level[rval.lower()]
 
     def py_to_raw(self, py_value: int) -> str:
@@ -58,7 +54,7 @@ class LogLevel(FieldProcessor):
 
     @property
     def my_type(self):
-        return 'int'
+        return int
 
 
 log_level_t = LogLevel()

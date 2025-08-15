@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 from typing import Type
 from numbers import Integral, Real
-from ._base import FieldProcessor
 from ._types import NumberTyping
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = [

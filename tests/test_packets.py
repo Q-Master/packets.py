@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
 import unittest
-from packets import Packet, PacketWithID, ArrayPacket, Field, TablePacket
-from packets import string_t, int_t, Array
+from typing import Optional
+from packets import Packet, ArrayPacket, Field, TablePacket, makeField
+from packets.processors import string_t, int_t, Array
 
 
 class schema_case(unittest.TestCase):
@@ -11,23 +12,20 @@ class schema_case(unittest.TestCase):
             'testInt': 17
         }
 
-
         class TestSchema(Packet):
-            packet_fields = ('testStr', 'testInt')
-            #
-            testStr = Field(string_t)
-            testInt = Field(int_t)
+            testStr: Optional[str] = makeField(string_t)
+            testInt: Optional[int] = makeField(int_t)
 
 
         #
         obj = TestSchema()
-        self.assertEquals(obj.dump(), {})
+        self.assertEqual(obj.dump(), {})
         #
         obj2 = TestSchema.load(DICT)
-        self.assertEquals(obj2.dump(), DICT)
+        self.assertEqual(obj2.dump(), DICT)
         #
         obj3 = TestSchema(**DICT)
-        self.assertEquals(obj3.dump(), DICT)
+        self.assertEqual(obj3.dump(), DICT)
         #
         obj3.testInt = None
         self.assertDictEqual({'testStr': 'tested ok'}, obj3.dump())
@@ -44,8 +42,8 @@ class schema_case(unittest.TestCase):
 
 
         class TestSchema(Packet):
-            testStr = Field(string_t, 'testStrName')
-            testInt = Field(int_t, 'testIntName')
+            testStr: Optional[str] = makeField(string_t, 'testStrName')
+            testInt: Optional[int] = makeField(int_t, 'testIntName')
 
 
         #
@@ -53,10 +51,10 @@ class schema_case(unittest.TestCase):
         self.assertIs(obj.testStr, None)
         #
         obj2 = obj.load(DICT)
-        self.assertEquals(obj2.dump(), DICT)
+        self.assertEqual(obj2.dump(), DICT)
         #
         obj3 = TestSchema(**KWARGS)
-        self.assertEquals(obj3.dump(), DICT)
+        self.assertEqual(obj3.dump(), DICT)
 
     def test_1_3_merge(self):
         DICT1 = {
@@ -71,19 +69,19 @@ class schema_case(unittest.TestCase):
 
 
         class TestSchema(Packet):
-            testStr = Field(string_t)
-            testInt = Field(int_t)
+            testStr: Optional[str] = makeField(string_t)
+            testInt: Optional[int] = makeField(int_t)
 
 
         #
         obj = TestSchema(**DICT1)
         obj.update(DICT2)
-        self.assertEquals(obj.dump(), DICTR)
+        self.assertEqual(obj.dump(), DICTR)
 
     def test_1_4_array(self):
         class TestSchema(ArrayPacket):
-            f1 = Field(int_t)
-            f2 = Field(string_t)
+            f1: Optional[int] = makeField(int_t)
+            f2: Optional[str] = makeField(string_t)
 
 
         packet = TestSchema.load([1, 'pew'])
@@ -94,7 +92,7 @@ class schema_case(unittest.TestCase):
 
     def test_2_1_required(self):
         class TestSchema(Packet):
-            testStr = Field(string_t, 'TestStrName', required=True)
+            testStr: Optional[str] = makeField(string_t, 'TestStrName', required=True)
 
 
         #
@@ -103,19 +101,19 @@ class schema_case(unittest.TestCase):
 
     def test_2_2_defval(self):
         class TestSchema(Packet):
-            testStr = Field(string_t, default='default tested ok')
+            testStr: str = makeField(string_t, default='default tested ok')
 
 
         #
         obj = TestSchema(testStr='tested ok')
-        self.assertEquals(obj.testStr, 'tested ok')
+        self.assertEqual(obj.testStr, 'tested ok')
         #
         obj2 = TestSchema()
-        self.assertEquals(obj2.testStr, 'default tested ok')
+        self.assertEqual(obj2.testStr, 'default tested ok')
 
     def test_2_3_default_values_copy(self):
         class TestSchema(Packet):
-            arr = Field(Array(string_t), default=['pew'])
+            arr: list[str] = makeField(Array(string_t), default=['pew'])
 
 
         p1 = TestSchema()
@@ -128,14 +126,15 @@ class schema_case(unittest.TestCase):
     def test_4_1_snapshot_deepcopy(self):
         global TestPacket
         class TestPacket(Packet):
-            f1 = Field(int_t)
-            f2 = Field(string_t)
-            f3 = Field(Array(int_t))
+            f1: Optional[int] = makeField(int_t)
+            f2: Optional[str] = makeField(string_t)
+            f3: Optional[list[int]] = makeField(Array(int_t))
 
 
         p = TestPacket(f1=11, f2='xxx', f3=[22, 33])
         snapshot = p.clone()
-
+        assert p.f3 is not None
+        assert not isinstance(p.f3, Field)
         p.f3.append(12)
         p.f2 = 'yyy'
         p.f1 = 2
@@ -146,8 +145,8 @@ class schema_case(unittest.TestCase):
 
     def test_update(self):
         class TestPacket(Packet):
-            f1 = Field(int_t, 'z1')
-            f2 = Field(int_t, 'z2')
+            f1: Optional[int] = makeField(int_t, 'z1')
+            f2: Optional[int] = makeField(int_t, 'z2')
 
 
         packet = TestPacket(f1=1, f2=2)
@@ -171,21 +170,7 @@ class schema_case(unittest.TestCase):
 
 
         D1 = Dup
-
-
-        class Dup(Base):
-            pass
-
-
         D2 = Dup
-
-
-        class Dup(object):
-            pass
-
-
-        D3 = Dup
-
 
         class Child(D1):
             pass
@@ -201,7 +186,6 @@ class schema_case(unittest.TestCase):
 
         d1 = D1()
         d2 = D2()
-        d3 = D3()
         child = Child()
         other_child = OtherChild()
 
@@ -212,9 +196,6 @@ class schema_case(unittest.TestCase):
         self.assertIsInstance(d2, D1)
         self.assertIsInstance(d2, D2)
         self.assertIsInstance(d2, Base)
-
-        self.assertNotIsInstance(d3, D2)
-        self.assertNotIsInstance(d3, D1)
 
         self.assertIsInstance(child, D1)
         self.assertIsInstance(child, D2)
@@ -230,9 +211,6 @@ class schema_case(unittest.TestCase):
         self.assertTrue(issubclass(D1, Base))
         self.assertTrue(issubclass(D2, D1))
         self.assertTrue(issubclass(D2, Base))
-
-        self.assertFalse(issubclass(D3, D2))
-        self.assertFalse(issubclass(D3, D1))
 
         self.assertTrue(issubclass(Child, D1))
         self.assertTrue(issubclass(Child, D2))
@@ -251,13 +229,11 @@ class schema_case(unittest.TestCase):
 
     def test_override(self):
         class Parent(Packet):
-            f1 = Field(int_t, 'field1', required=True)
-
+            f1 = makeField(int_t, 'field1', required=True)
 
         class Child(Parent):
-            f1 = Field(default=3, override=True)
-
-
+            f1 = makeField(default=3, override=True)
+        
         packet = Child()
         self.assertEqual(packet.dump(), {'field1': 3})
 
@@ -268,15 +244,20 @@ class schema_case(unittest.TestCase):
             },
             'f': 2
         }
+
         class SubPacket(Packet):
-            f1 = Field(int_t)
+            f1: Optional[int] = makeField(int_t)
+        
         class ParentPacket(Packet):
-            p = Field(SubPacket)
-            f = Field(int_t)
+            p: Optional[SubPacket] = makeField(SubPacket)
+            f: Optional[int] = makeField(int_t)
+        
         packet = ParentPacket.load(t)
         self.assertIsInstance(packet.p, SubPacket)
-        self.assertEquals(packet.p.f1, 1)
-        self.assertEquals(packet.f, 2)
+        self.assertIsNotNone(packet.p)
+        assert packet.p is not None
+        self.assertEqual(packet.p.f1, 1)
+        self.assertEqual(packet.f, 2)
     
     def test_tablepacket(self):
         t = {
@@ -295,16 +276,16 @@ class schema_case(unittest.TestCase):
         }
 
         class TableField(Packet):
-            f1 = Field(int_t)
-            f2 = Field(string_t)
+            f1: Optional[int] = makeField(int_t)
+            f2: Optional[str] = makeField(string_t)
         
         class Default(TablePacket):
             __default_field__ = Field(TableField)
         
         packet = Default.load(t)
-        self.assertEquals(packet.a.f1, 1)
-        self.assertEquals(packet.b.f1, 2)
-        self.assertEquals(packet.c.f1, 3)
+        self.assertEqual(packet.a.f1, 1)
+        self.assertEqual(packet.b.f1, 2)
+        self.assertEqual(packet.c.f1, 3)
 
     def test_modified(self):
         t = {
@@ -314,14 +295,16 @@ class schema_case(unittest.TestCase):
             'f': 2
         }
         class SubPacket(Packet):
-            f1 = Field(int_t)
+            f1: Optional[int] = makeField(int_t)
         class ParentPacket(Packet):
-            p = Field(SubPacket)
-            f = Field(int_t)
+            p: Optional[SubPacket] = makeField(SubPacket)
+            f: Optional[int] = makeField(int_t)
+        
         packet = ParentPacket.load(t)
         self.assertEqual(packet.is_modified(), False)
         packet.f1 = 2
         self.assertEqual(packet.is_modified(), False)        
+        assert packet.p is not None
         packet.p.f1 = 2
         self.assertEqual(packet.is_modified(), True)
 

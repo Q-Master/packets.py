@@ -2,8 +2,8 @@
 import time
 import datetime
 from numbers import Integral
-from ._base import FieldProcessor
 from ._types import StringTypes, StringTypesTyping, unixtime
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = [
@@ -31,19 +31,17 @@ class DateAsString(FieldProcessor):
         assert isinstance(value, StringTypes), (value, type(value))
 
     def raw_to_py(self, raw_value: StringTypesTyping, strict: bool) -> datetime.datetime:
-        rval: str
-        if isinstance(raw_value, bytes):
-            rval = raw_value.decode('utf-8')
-        else:
-            rval = raw_value
-        return datetime.datetime.strptime(rval, self.format_string)
+        return datetime.datetime.strptime(
+            raw_value if isinstance(raw_value, str) else raw_value.decode('utf8'), 
+            self.format_string
+        )
 
     def py_to_raw(self, py_value: datetime.datetime) -> str:
         return py_value.strftime(self.format_string)
 
     @property
     def my_type(self):
-        return 'datetime.datetime'
+        return datetime.datetime
 
 
 class UnixtimeAsString(FieldProcessor):
@@ -66,19 +64,17 @@ class UnixtimeAsString(FieldProcessor):
         assert isinstance(value, StringTypes), (value, type(value))
 
     def raw_to_py(self, raw_value: StringTypesTyping, strict: bool) -> unixtime:
-        rval: str
-        if isinstance(raw_value, bytes):
-            rval = raw_value.decode('utf-8')
-        else:
-            rval = raw_value
-        return unixtime(time.mktime(datetime.datetime.strptime(rval, self.format_string).timetuple()))
+        return unixtime(time.mktime(datetime.datetime.strptime(
+            raw_value if isinstance(raw_value, str) else raw_value.decode('utf8'), 
+            self.format_string).timetuple())
+        )
 
     def py_to_raw(self, py_value: Integral) -> str:
         return datetime.datetime.fromtimestamp(float(py_value)).strftime(self.format_string)
 
     @property
     def my_type(self):
-        return 'unixtime'
+        return unixtime
 
 
 class TimeAsString(FieldProcessor):
@@ -102,41 +98,42 @@ class TimeAsString(FieldProcessor):
         assert isinstance(value, StringTypes), (value, type(value))
 
     def raw_to_py(self, raw_value: StringTypesTyping, strict: bool) -> datetime.time:
-        rval: str
-        if isinstance(raw_value, bytes):
-            rval = raw_value.decode('utf-8')
-        else:
-            rval = raw_value
-        return datetime.datetime.strptime(rval, self.format_string).time()
+        return datetime.datetime.strptime(
+            raw_value if isinstance(raw_value, str) else raw_value.decode('utf8'), 
+            self.format_string
+        ).time()
 
     def py_to_raw(self, py_value) -> str:
         return py_value.strftime(self.format_string)
 
     @property
     def my_type(self):
-        return 'datetime.time'
+        return datetime.time
 
 
 class DateTime(FieldProcessor):
     """DateTime processor."""
+
     def check_py(self, py_value):
         assert isinstance(py_value, datetime.datetime), (py_value, type(py_value))
 
-    check_raw = check_py
+    def check_raw(self, raw_value):
+        assert isinstance(raw_value, datetime.datetime), (raw_value, type(raw_value))
 
-    def raw_to_py(self, raw_value, strict):
+    def raw_to_py(self, raw_value, strict) -> datetime.datetime:
         return raw_value
 
-    def py_to_raw(self, value):
+    def py_to_raw(self, value) -> datetime.datetime:
         return value
 
     @property
     def my_type(self):
-        return 'datetime.datetime'
+        return datetime.datetime
 
 
 class UnixTime(FieldProcessor):
     """Unixtime processor. Stores `unixtime` as int"""
+
     def check_py(self, value: unixtime):
         assert isinstance(value, (unixtime, int)), (value, type(value))
         if value < 0:
@@ -158,25 +155,27 @@ class UnixTime(FieldProcessor):
     
     @property
     def my_type(self):
-        return 'unixtime'
+        return unixtime
 
 
 class Time(FieldProcessor):
     """Time processor."""
+
     def check_py(self, py_value):
         assert isinstance(py_value, datetime.time), (py_value, type(py_value))
 
-    check_raw = check_py
+    def check_raw(self, raw_value):
+        assert isinstance(raw_value, datetime.time), (raw_value, type(raw_value))
 
-    def raw_to_py(self, raw_value, strict):
+    def raw_to_py(self, raw_value, strict) -> datetime.time:
         return raw_value
 
-    def py_to_raw(self, value):
+    def py_to_raw(self, value) -> datetime.time:
         return value
 
     @property
     def my_type(self):
-        return 'datetime.time'
+        return datetime.time
 
 
 unixtime_t = UnixTime()

@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
+from typing import Sequence as Seq
 from numbers import Integral
 from collections.abc import Sequence
-from ._base import FieldProcessor
 from .subpacket import SubPacket
-from .._packetbase import PacketBase
 from ._types import StringTypes, SubElementTyping
+from .._packetbase import PacketBase
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['Array']
@@ -62,4 +63,4 @@ class Array(FieldProcessor):
 
     @property
     def my_type(self):
-        return f'List[{self._element_type.my_type}]'
+        return Seq[self._element_type.my_type]

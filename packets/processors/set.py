@@ -1,21 +1,22 @@
 # -*- coding:utf-8 -*-
-from typing import Union, Iterable
-from . import FieldProcessor, SubPacket
-from ._types import SubElementTyping
-from .._packetbase import PacketBase
+from typing import Union, Iterable, TypeVar, Generic
+from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['Set']
 
 
-class Set(FieldProcessor):
+T = TypeVar('T', bound=FieldProcessor)
+
+class Set(Generic[T], FieldProcessor):
     """Set of elements processor"""
+    _element_type: FieldProcessor
 
     @property
     def zero_value(self):
         return set()
 
-    def __init__(self, element_type: SubElementTyping):
+    def __init__(self, element_type: T):
         """Constructor
 
         Args:
@@ -27,10 +28,8 @@ class Set(FieldProcessor):
         super(Set, self).__init__()
         if isinstance(element_type, FieldProcessor):
             self._element_type = element_type
-        elif issubclass(element_type, PacketBase):
-            self._element_type = SubPacket(element_type)
         else:
-            raise TypeError(f'element_type must be either FieldType or Packet ({type(element_type)})')
+            raise TypeError(f'element_type must be FieldType ({type(element_type)})')
 
     def check_py(self, value: Union[list, tuple, set]):
         assert isinstance(value, (list, tuple, set)), (value, type(value))
@@ -50,4 +49,4 @@ class Set(FieldProcessor):
 
     @property
     def my_type(self):
-        return f'Set[{self._element_type.my_type}]'
+        return set[self._element_type.my_type]
