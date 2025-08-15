@@ -4,7 +4,7 @@ from ._packetbase import PacketBase
 from .packet import Packet, TablePacket, ArrayPacket, PacketWithID
 from .field import *
 
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'
