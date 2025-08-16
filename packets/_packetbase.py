@@ -24,19 +24,12 @@ class PacketMeta(ABCMeta):
                     fields[field_name] = field
             if hasattr(base, '__tags__'):
                 tags.update(base.__tags__)
-        to_delete: List[str] = []
         for field_name, field in namespace.items():
             if isinstance(field, FieldBase) and field_name != '__default_field__':
                 field.on_packet_class_create(fields.get(field_name), field_name)
                 fields[field_name] = field
                 if field_name not in annotations.keys():
                     annotations[field_name] = field.info.my_type
-                if (field.info.has_default()):
-                    namespace[field_name] = field.info.default
-                else:
-                    to_delete.append(field_name)
-        for name in to_delete:
-            del namespace[name]
         namespace['__annotations__'] = annotations
         for field_name, count in Counter(field.info.name for field in fields.values()).items():
             if count > 1:
