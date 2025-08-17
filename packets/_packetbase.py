@@ -328,6 +328,9 @@ class PacketBase(metaclass=PacketMeta):
                     if int_key in current:
                         del current[int_key]
 
+    def __len__(self) -> int:
+        return len(self.__fields__)
+
     def __deepdummy__(self, memo):
         pass
 

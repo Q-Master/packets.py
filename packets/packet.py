@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Optional, Type, Self, TYPE_CHECKING, Union, get_origin, get_args, Generic, TypeVar, Union, Any
+from typing import Optional, Type, Self, TYPE_CHECKING, Union, get_origin, get_args, Generic, TypeVar, Union, Any, MutableMapping
 import zlib
 import types
 from ._packetbase import PacketBase
@@ -107,7 +107,7 @@ class ArrayPacket(PacketBase):
 
 TPT = TypeVar('TPT', bound=PacketBase)
 
-class TablePacket(Generic[TPT], Packet):
+class TablePacket(Packet, MutableMapping[str, TPT]):
     """Same as a normal packet, but intended to use with initially unknown amount of rows.
 
     __default_field__ must be defined to show the structure of a row.
