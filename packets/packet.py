@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Optional, Type, Self, TYPE_CHECKING, Union, get_origin, get_args
+from typing import Optional, Type, Self, TYPE_CHECKING, Union, get_origin, get_args, Generic, TypeVar, Union, Any
 import zlib
 import types
 from ._packetbase import PacketBase
@@ -105,7 +105,9 @@ class ArrayPacket(PacketBase):
             yield getattr(self, field_name)
 
 
-class TablePacket(Packet):
+TPT = TypeVar('TPT', bound=PacketBase)
+
+class TablePacket(Generic[TPT], Packet):
     """Same as a normal packet, but intended to use with initially unknown amount of rows.
 
     __default_field__ must be defined to show the structure of a row.
@@ -157,7 +159,7 @@ class TablePacket(Packet):
         super().update(raw_data)
 
     if TYPE_CHECKING:
-        def __getattribute__(self, name: str):
+        def __getattribute__(self, name: str) -> Union[TPT, Any]:
                 try:
                     res = super().__getattribute__(name)
                 except AttributeError:
