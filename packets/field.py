@@ -39,7 +39,8 @@ class Field(FieldBase):
         self._info = FieldInfo(self._fix_processor(processor), name, default, required, override)
 
     @property
-    def name(self) -> str | None:
+    def name(self) -> str:
+        assert self._info.name is not None
         return self._info.name
 
 
