@@ -129,7 +129,7 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
         for k in raw_data.keys():
             if k not in new_ones:
                 continue
-            nm = cls.__default_field__.name or k
+            nm = k
             assert partial_class.__default_field__ is not None
             new_field = partial_class.__default_field__.clone(name=k, override=True)
             partial_class.__fields__[nm] = new_field
@@ -150,8 +150,8 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
         for new in raw_data.keys():
             if new not in new_ones:
                 continue
+            nm = new
             assert self.__class__.__default_field__ is not None
-            nm = self.__class__.__default_field__.name or new
             new_field = self.__class__.__default_field__.clone(name=new, override=True)
             self.__class__.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, new)
@@ -159,17 +159,14 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
         super().update(raw_data)
 
     if TYPE_CHECKING:
-        def __getattribute__(self, name: str) -> Union[TPT, Any]:
-                try:
-                    res = super().__getattribute__(name)
-                except AttributeError:
-                    cls = super().__getattribute__('__class__')
-                    if name not in cls.__fields__:
-                        print(name)
-                        df = super().__getattribute__('__default_field__')
-                        assert df is not None 
-                        typ = df.info.my_type
-                        if get_origin(typ) is Union:
-                            typ = get_args(typ)[0]
-                        res = typ()
-                return res
+        def __getattr__(self, name: str) -> TPT:
+            cls = super().__getattribute__('__class__')
+            if name not in cls.__fields__:
+                df = super().__getattribute__('__default_field__')
+                assert df is not None 
+                typ = df.info.my_type
+                if get_origin(typ) is Union:
+                    typ = get_args(typ)[0]
+                return typ()
+            else:
+                raise AttributeError()

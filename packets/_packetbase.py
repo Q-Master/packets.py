@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Any, List, Set, Dict, TypeVar, Type, Self, Sequence
+from typing import Any, List, Set, Dict, TypeVar, Type, Self
 import pickle
 from copy import deepcopy
 from collections import Counter
