@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Optional, Type, Self, TYPE_CHECKING, Union, get_origin, get_args, Generic, TypeVar, Union, Any, MutableMapping
+from typing import Optional, Type, Self, TYPE_CHECKING, TypeVar, cast, MutableMapping
 import zlib
 import types
 from ._packetbase import PacketBase
@@ -112,7 +112,7 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
 
     __default_field__ must be defined to show the structure of a row.
     """
-    __default_field__: Optional[Field] = None
+    __default_field__: Optional[TPT] = None
 
     @classmethod
     def load(cls, raw_data, strict=True):
@@ -122,7 +122,7 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
         curr_fields.update(cls.__raw_mapping__.keys())
         namespace = {k: v for k, v in cls.__dict__.items() if k not in curr_fields}
         namespace.update({fieldname: field.clone(override=False) for fieldname, field in cls.__fields__.items()})
-        namespace.update({'__default_field__': cls.__default_field__.clone(override=False)})
+        namespace.update({'__default_field__': cast(Field, cls.__default_field__).clone(override=False)})
         partial_class: Type[Self] = types.new_class(cls.__name__, cls.__bases__, exec_body=lambda ns: ns.update(namespace))
         new_fields = set(raw_data.keys())
         new_ones = new_fields - curr_fields
@@ -131,7 +131,7 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
                 continue
             nm = k
             assert partial_class.__default_field__ is not None
-            new_field = partial_class.__default_field__.clone(name=k, override=True)
+            new_field = cast(Field, partial_class.__default_field__).clone(name=k, override=True)
             partial_class.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, k)
             partial_class.__raw_mapping__[nm] = k
@@ -152,21 +152,20 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
                 continue
             nm = new
             assert self.__class__.__default_field__ is not None
-            new_field = self.__class__.__default_field__.clone(name=new, override=True)
+            new_field = cast(Field, self.__class__.__default_field__).clone(name=new, override=True)
             self.__class__.__fields__[nm] = new_field
             new_field.on_packet_class_create(new_field, new)
             self.__class__.__raw_mapping__[nm] = new
         super().update(raw_data)
 
+    def __len__(self) -> int:
+        return len(self.__fields__)
+    
     if TYPE_CHECKING:
         def __getattr__(self, name: str) -> TPT:
             cls = super().__getattribute__('__class__')
             if name not in cls.__fields__:
-                df: Field = super().__getattribute__('__default_field__')
-                assert df is not None 
-                typ = df.info.my_type
-                if get_origin(typ) is Union:
-                    typ = get_args(typ)[0]
-                return typ
-            else:
-                raise AttributeError()
+                df = super().__getattribute__('__default_field__')
+                assert df is not None
+                return df
+            raise AttributeError()

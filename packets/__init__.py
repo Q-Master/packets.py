@@ -5,7 +5,7 @@ from ._fieldprocessorbase import FieldProcessor
 from .packet import Packet, TablePacket, ArrayPacket, PacketWithID
 from .field import *
 
-__version__ = '0.9.8'
+__version__ = '0.9.9'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'

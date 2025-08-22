@@ -280,7 +280,7 @@ class schema_case(unittest.TestCase):
             f2: Optional[str] = makeField(string_t)
         
         class Default(TablePacket[TableField]):
-            __default_field__ = Field(TableField)
+            __default_field__ = makeField(TableField, required=True)
         
         packet = Default.load(t)
         self.assertEqual(packet.a.f1, 1)
