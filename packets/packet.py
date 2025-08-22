@@ -162,11 +162,11 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
         def __getattr__(self, name: str) -> TPT:
             cls = super().__getattribute__('__class__')
             if name not in cls.__fields__:
-                df = super().__getattribute__('__default_field__')
+                df: Field = super().__getattribute__('__default_field__')
                 assert df is not None 
                 typ = df.info.my_type
                 if get_origin(typ) is Union:
                     typ = get_args(typ)[0]
-                return typ()
+                return typ
             else:
                 raise AttributeError()
