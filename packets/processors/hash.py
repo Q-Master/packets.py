@@ -6,13 +6,14 @@ from .subpacket import SubPacket
 from .numeric import Number
 from .date import UnixTime
 from .string import String
+from .enumeration import Enumeration, EnumerationByName
 from .._packetbase import PacketBase
 from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = ['Hash']
 
-K = TypeVar('K', Number, UnixTime, String)
+K = TypeVar('K', Number, UnixTime, String, Enumeration, EnumerationByName)
 V = TypeVar('V', bound=SubElementTyping)
 
 
