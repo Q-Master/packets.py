@@ -206,6 +206,8 @@ class PacketBase(metaclass=PacketMeta):
             self[k] = v
 
     def is_modified(self) -> bool:
+        if self.__modified:
+            return True
         modified = self.__modified
         for k in self.__fields__:
             attr = getattr(self, k)
