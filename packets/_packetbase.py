@@ -24,10 +24,12 @@ class PacketMeta(ABCMeta):
                     fields[field_name] = field
             if hasattr(base, '__tags__'):
                 tags.update(base.__tags__)
+        local_fields = []
         for field_name, field in namespace.items():
             if isinstance(field, FieldBase) and field_name != '__default_field__':
                 field.on_packet_class_create(fields.get(field_name), field_name)
                 fields[field_name] = field
+                local_fields.append(field_name)
                 if field_name not in annotations.keys():
                     annotations[field_name] = field.info.my_type
         namespace['__annotations__'] = annotations
@@ -35,6 +37,7 @@ class PacketMeta(ABCMeta):
             if count > 1:
                 raise TypeError(f'Packet has two fields with same name: {field_name}')
         namespace['__fields__'] = fields
+        namespace['__local_fields_names__'] = local_fields
         namespace['__tags__'] = tags
         namespace['__raw_mapping__'] = {field.info.name: field.info.py_name for field_name, field in fields.items()}
         return super().__new__(cls, cls_name, bases, namespace)
@@ -47,6 +50,7 @@ class PacketBase(metaclass=PacketMeta):
     """Base class for packets"""
     
     __fields__: Dict[str, FieldBase] = {}
+    __local_fields_names__: List[str] = []
     __tags__: Set[str] = set()
     __raw_mapping__: Dict[str, str] = {}
     __modified = False
@@ -63,6 +67,15 @@ class PacketBase(metaclass=PacketMeta):
 
         Returns:
             List[str]: list of all field names used in that packet
+        """        
+        return cls.__local_fields_names__
+
+    @classmethod
+    def local_fields_names(cls):
+        """Returns list of field names local to this packet
+
+        Returns:
+            List[str]: list of local field names used only in that packet
         """        
         return cls.__fields__.keys()
 

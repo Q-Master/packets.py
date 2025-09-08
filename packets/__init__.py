@@ -3,9 +3,13 @@ from . import _json as json
 from ._packetbase import PacketBase
 from ._fieldprocessorbase import FieldProcessor
 from .packet import Packet, TablePacket, ArrayPacket, PacketWithID
-from .field import *
+from .field import Field, makeField
 
-__version__ = '0.9.11'
+
+__all__ = ['json', 'PacketBase', 'FieldProcessor', 'Packet', 'TablePacket', 'ArrayPacket', 'PacketWithID', 'Field', 'makeField']
+
+
+__version__ = '0.9.12'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'
