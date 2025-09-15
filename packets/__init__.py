@@ -9,7 +9,7 @@ from .field import Field, makeField
 __all__ = ['json', 'PacketBase', 'FieldProcessor', 'Packet', 'TablePacket', 'ArrayPacket', 'PacketWithID', 'Field', 'makeField']
 
 
-__version__ = '0.9.12'
+__version__ = '0.9.13'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'

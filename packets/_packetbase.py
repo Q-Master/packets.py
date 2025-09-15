@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Any, List, Set, Dict, TypeVar, Type, Self
+from typing import Any, List, Set, Dict, TypeVar, Type, Self, Optional
 import pickle
 from copy import deepcopy
 from collections import Counter
@@ -204,16 +204,6 @@ class PacketBase(metaclass=PacketMeta):
         """        
         return json.dumps(self.dump(), **kwargs)
 
-    def dump_partial(self, field_paths: List[str]) -> dict:
-        result = {}
-        for path in field_paths:
-            s_path = path.split('.')
-            field = self.__fields__.get(s_path[-1], None)
-            if field:
-                value = self.__getsetitem(s_path)
-                result[path] = field.py_to_raw(value)
-        return result
-
     def update_partial(self, field_pairs: dict[str, Any]) -> None:
         for k, v in field_pairs.items():
             self[k] = v
@@ -346,10 +336,10 @@ class PacketBase(metaclass=PacketMeta):
     def __len__(self) -> int:
         return len(self.__fields__)
 
-    def __deepdummy__(self, memo):
+    def __deepdummy__(self, memo: Optional[Dict[int, Any]] = None) -> Self: # type: ignore
         pass
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo: Optional[Dict[int, Any]] = None) -> Self:
         if 'dont_cpickle' in self.__tags__:
             deep_backup, self.__deepcopy__ = self.__deepcopy__, self.__deepdummy__
             newone = deepcopy(self, memo)
@@ -358,5 +348,22 @@ class PacketBase(metaclass=PacketMeta):
         else:
             return pickle.loads(pickle.dumps(self, protocol=-1))
 
+    def __iter__(self):
+        for field_name in self.__class__.__fields__:
+            yield getattr(self, field_name)
+
+    def packet_fields(self):
+        for field_name in self.__class__.__fields__:
+            yield (field_name, getattr(self, field_name))
+
+    def keys(self):
+        return self.__class__.__fields__.keys()
+
+    def get(self, field_name: str, default=None):
+        if field_name in self.keys():
+            return getattr(self, field_name)
+        else:
+            return default
+    
     def clone(self):
         return self.__deepcopy__(None)

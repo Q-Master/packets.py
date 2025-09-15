@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Optional, Type, Self, TYPE_CHECKING, TypeVar, cast, MutableMapping
+from typing import List, Optional, Type, Self, TYPE_CHECKING, TypeVar, cast, MutableMapping
 import zlib
 import types
 from ._packetbase import PacketBase
@@ -38,32 +38,15 @@ class Packet(PacketBase):
                 js_dict[field.name if raw else field_name] = raw_value
         return js_dict
 
-    # Temporarily commenting out, yet not working solution
-    #@classmethod
-    #def dump_partial(cls, partial_data):
-    #    fields = cls.__fields__
-    #    return {
-    #        fields[field_name].name: fields[field_name].dump_partial(value)
-    #        for field_name, value in partial_data.items()
-    #        if field_name in fields and (value is not None or fields[field_name].required)
-    #    }
-
-    def __iter__(self):
-        for field_name in self.__class__.__fields__:
-            yield getattr(self, field_name)
-
-    def packet_fields(self):
-        for field_name in self.__class__.__fields__:
-            yield (field_name, getattr(self, field_name))
-
-    def keys(self):
-        return self.__class__.__fields__.keys()
-
-    def get(self, field_name: str, default=None):
-        if field_name in self.keys():
-            return getattr(self, field_name)
-        else:
-            return default
+    #def dump_partial(self, field_paths: List[str]) -> dict:
+    #    result = {}
+    #    for path in field_paths:
+    #        s_path = path.split('.')
+    #        field = self.__fields__.get(s_path[-1], None)
+    #        if field:
+    #            value = self.__getsetitem(s_path)
+    #            result[path] = field.py_to_raw(value)
+    #    return result
 
 
 class PacketWithID(Packet):
