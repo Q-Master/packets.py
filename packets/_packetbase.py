@@ -67,8 +67,9 @@ class PacketBase(metaclass=PacketMeta):
 
         Returns:
             List[str]: list of all field names used in that packet
-        """        
-        return cls.__local_fields_names__
+        """
+        return cls.__fields__.keys()
+
 
     @classmethod
     def local_fields_names(cls):
@@ -76,8 +77,8 @@ class PacketBase(metaclass=PacketMeta):
 
         Returns:
             List[str]: list of local field names used only in that packet
-        """        
-        return cls.__fields__.keys()
+        """
+        return iter(cls.__local_fields_names__)
 
     @classmethod
     def escaped_fields_names(cls) -> List[str]:
@@ -85,7 +86,7 @@ class PacketBase(metaclass=PacketMeta):
 
         Returns:
             List[str]: escaped list of all field names used in that packet
-        """        
+        """
         return [f'"{key}"' for key in cls.__fields__.keys()]
 
     @classmethod
