@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Any
+from typing import Any, Type
 from abc import ABCMeta, abstractmethod
 
 
@@ -14,7 +14,7 @@ class FieldProcessor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def my_type(cls):
+    def my_type(cls) -> Type:
         pass
 
     @abstractmethod

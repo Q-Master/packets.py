@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
-from typing import List, Optional, Type, Self, TYPE_CHECKING, TypeVar, cast, MutableMapping
+from typing import List, Optional, Type, Self, TYPE_CHECKING, TypeVar, cast, MutableMapping, Union
 import zlib
 import types
-from ._packetbase import PacketBase
+from itertools import groupby
+from ._packetbase import PacketBase, DiffKeys
 from .field import Field
 
 
@@ -38,15 +39,18 @@ class Packet(PacketBase):
                 js_dict[field.name if raw else field_name] = raw_value
         return js_dict
 
-    #def dump_partial(self, field_paths: List[str]) -> dict:
-    #    result = {}
-    #    for path in field_paths:
-    #        s_path = path.split('.')
-    #        field = self.__fields__.get(s_path[-1], None)
-    #        if field:
-    #            value = self.__getsetitem(s_path)
-    #            result[path] = field.py_to_raw(value)
-    #    return result
+    def dump_partial(self, field_paths: DiffKeys) -> dict:
+        result = {}
+        for fn, subpaths in field_paths.items():
+            field = self.__fields__.get(fn, None)
+            if field:
+                if isinstance(subpaths, str):
+                    raw_value = field.py_to_raw(getattr(self, fn))
+                    if raw_value is not None:
+                        result[field.name] = raw_value
+                else:
+                    result[field.name] = getattr(self, fn).dump_partial(subpaths)
+        return result
 
 
 class PacketWithID(Packet):
@@ -82,6 +86,9 @@ class ArrayPacket(PacketBase):
 
     def dump(self):
         return [field.py_to_raw(getattr(self, field_name)) for field_name, field in self.__fields__.items()]
+
+    def dump_partial(self, field_paths: DiffKeys):
+        return self.dump()
 
     def __iter__(self):
         for field_name in self.__fields__:

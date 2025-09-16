@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Any, List, Set, Dict, TypeVar, Type, Self, Optional
+from typing import Any, List, Set, Dict, TypeVar, Type, Self, Optional, Union, TypeAlias
 import pickle
 from copy import deepcopy
 from collections import Counter
@@ -44,7 +44,7 @@ class PacketMeta(ABCMeta):
 
 
 T = TypeVar('T', bound='PacketBase')
-
+DiffKeys: TypeAlias = Dict[str, Union[str, 'DiffKeys']]
 
 class PacketBase(metaclass=PacketMeta):
     """Base class for packets"""
@@ -204,6 +204,10 @@ class PacketBase(metaclass=PacketMeta):
             str: serialized packet
         """        
         return json.dumps(self.dump(), **kwargs)
+
+    @abstractmethod
+    def dump_partial(self, field_paths: DiffKeys):
+        pass
 
     def update_partial(self, field_pairs: dict[str, Any]) -> None:
         for k, v in field_pairs.items():
