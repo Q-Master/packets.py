@@ -1,15 +1,19 @@
 # -*- coding:utf-8 -*-
 from . import _json as json
-from ._packetbase import PacketBase
+from ._packetbase import PacketBase, DiffKeys
 from ._fieldprocessorbase import FieldProcessor
 from .packet import Packet, TablePacket, ArrayPacket, PacketWithID
 from .field import Field, makeField
 
 
-__all__ = ['json', 'PacketBase', 'FieldProcessor', 'Packet', 'TablePacket', 'ArrayPacket', 'PacketWithID', 'Field', 'makeField']
+__all__ = [
+    'json', 
+    'PacketBase', 'Packet', 'TablePacket', 'ArrayPacket', 'PacketWithID', 'DiffKeys', 
+    'FieldProcessor', 'Field', 'makeField'
+]
 
 
-__version__ = '0.9.15'
+__version__ = '0.9.16'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'
