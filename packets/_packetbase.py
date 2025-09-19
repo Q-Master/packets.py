@@ -184,7 +184,7 @@ class PacketBase(metaclass=PacketMeta):
         pass
 
     @abstractmethod
-    def dump(self):
+    def dump(self) -> Any:
         """Required interface method for packet serialization
         """        
         pass
