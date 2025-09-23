@@ -27,7 +27,10 @@ class Packet(PacketBase):
         for field_name, field in cls.__fields__.items():
             if field.name in raw_js.keys():
                 raw_value = raw_js.get(field.name, None)
-                field_value = field.raw_to_py(raw_value, strict=strict)
+                try:
+                    field_value = field.raw_to_py(raw_value, strict=strict)
+                except Exception as e:
+                    raise ValueError(f'Failed to parse "{cls.__name__}::{field_name}": {e}')
                 attrs[field_name] = field_value
         return attrs
 
@@ -80,7 +83,10 @@ class ArrayPacket(PacketBase):
     def _parse_raw(cls, raw_list, strict=True):
         attrs = {}
         for (field_name, field), raw_value in zip(cls.__fields__.items(), raw_list):
-            field_value = field.raw_to_py(raw_value, strict=strict)
+            try:
+                field_value = field.raw_to_py(raw_value, strict=strict)
+            except Exception as e:
+                raise ValueError(f'Failed to parse "{cls.__name__}::{field_name}": {e}')
             attrs[field_name] = field_value
         return attrs
 

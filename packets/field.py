@@ -78,7 +78,7 @@ class Field(FieldBase):
                 assert self._info.processor is not None
                 py_value = self._info.processor.zero_value
             else:
-                raise ValueError(f'Field required {self}')
+                raise ValueError(f'Field required')
         return py_value
 
     def py_to_raw(self, py_value):

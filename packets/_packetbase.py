@@ -106,10 +106,13 @@ class PacketBase(metaclass=PacketMeta):
         super().__init__()
         strict = kwargs.pop('__strict', True)
         for field_name, field_processor in self.__fields__.items():
-            if field_name not in kwargs:
-                value = field_processor.raw_to_py(None, strict=strict)
-            else:
-                value = kwargs.pop(field_name)
+            try:
+                if field_name not in kwargs:
+                    value = field_processor.raw_to_py(None, strict=strict)
+                else:
+                    value = kwargs.pop(field_name)
+            except Exception as e:
+                raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
             setattr(self, field_name, value)
         self.__modified = False
         assert not kwargs, f'Extra arguments: {kwargs}'
