@@ -35,7 +35,7 @@ class PacketMeta(ABCMeta):
         namespace['__annotations__'] = annotations
         for field_name, count in Counter(field.info.name for field in fields.values()).items():
             if count > 1:
-                raise TypeError(f'Packet has two fields with same name: {field_name}')
+                raise TypeError(f'Packet "{cls_name}" has two fields with same name: {field_name}')
         namespace['__fields__'] = fields
         namespace['__local_fields_names__'] = local_fields
         namespace['__tags__'] = tags

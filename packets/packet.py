@@ -113,7 +113,7 @@ class TablePacket(Packet, MutableMapping[str, TPT]):
     @classmethod
     def load(cls, raw_data, strict=True):
         if not cls.__default_field__:
-            raise AttributeError(u'DefaultPacket must have default field')
+            raise AttributeError(f'DefaultPacket "{cls.__name__}" must have default field')
         curr_fields = set(cls.__fields__.keys())
         curr_fields.update(cls.__raw_mapping__.keys())
         namespace = {k: v for k, v in cls.__dict__.items() if k not in curr_fields}
