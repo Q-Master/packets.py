@@ -179,7 +179,7 @@ class UnixtimeAsString(FieldProcessor):
         return unixtime(raw_value)
 
     def py_to_raw(self, value: unixtime) -> str:
-        return str(value)
+        return str(int(value))
     
     @property
     def my_type(self):

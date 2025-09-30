@@ -3,8 +3,8 @@ from typing import TypeVar, Generic
 from collections.abc import Mapping, MutableMapping
 from ._types import SubElementTyping
 from .subpacket import SubPacket
-from .numeric import Number
-from .date import UnixTime
+from .numeric import Number, NumberAsString
+from .date import UnixTime, UnixtimeAsString
 from .string import String
 from .enumeration import Enumeration, EnumerationByName
 from .._packetbase import PacketBase
@@ -13,7 +13,7 @@ from .._fieldprocessorbase import FieldProcessor
 
 __all__ = ['Hash']
 
-K = TypeVar('K', Number, UnixTime, String, Enumeration, EnumerationByName)
+K = TypeVar('K', Number, NumberAsString, UnixTime, UnixtimeAsString, String, Enumeration, EnumerationByName)
 V = TypeVar('V', bound=SubElementTyping)
 
 
