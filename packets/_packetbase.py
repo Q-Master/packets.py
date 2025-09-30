@@ -230,9 +230,9 @@ class PacketBase(metaclass=PacketMeta):
         if isinstance(other, PacketBase):
             if self.__class__ != other.__class__:
                 return False
-            if self.__fields__.keys() != other.__fields__.keys():
+            if self.fields_names() != other.fields_names():
                 return False
-            for py_name in self.__fields__.keys():
+            for py_name in self.fields_names():
                 if getattr(self, py_name) != getattr(other, py_name):
                     return False
             return True
@@ -364,11 +364,8 @@ class PacketBase(metaclass=PacketMeta):
         for field_name in self.__class__.__fields__:
             yield (field_name, getattr(self, field_name))
 
-    def keys(self):
-        return self.__class__.__fields__.keys()
-
     def get(self, field_name: str, default=None):
-        if field_name in self.keys():
+        if field_name in self.fields_names():
             return getattr(self, field_name)
         else:
             return default
