@@ -7,8 +7,8 @@ from .._fieldprocessorbase import FieldProcessor
 
 
 __all__ = [
-    'DateAsString', 'UnixtimeAsString', 'TimeAsString', 'DateTime', 'UnixTime', 
-    'unixtime_t', 'str_datetime_z_t', 'str_datetime_t', 'str_date_t', 'str_time_t', 'str_unixtime_t', 'datetime_t'
+    'DateAsString', 'UnixtimeAsDateString', 'TimeAsString', 'DateTime', 'UnixTime', 'UnixtimeAsString',
+    'unixtime_t', 'str_unixtime_t', 'str_datetime_z_t', 'str_datetime_t', 'str_date_t', 'str_time_t', 'datetime_t', 'str_date_unixtime_t'
 ]
 
 
@@ -44,7 +44,7 @@ class DateAsString(FieldProcessor):
         return datetime.datetime
 
 
-class UnixtimeAsString(FieldProcessor):
+class UnixtimeAsDateString(FieldProcessor):
     """Unixtime processor. Stores `unixtime` as string using `self.format_string`"""
 
     def __init__(self, format_string):
@@ -158,6 +158,34 @@ class UnixTime(FieldProcessor):
         return unixtime
 
 
+class UnixtimeAsString(FieldProcessor):
+    """Unixtime processor. Stores `unixtime` as int"""
+
+    def check_py(self, value: unixtime):
+        assert isinstance(value, (unixtime, int)), (value, type(value))
+        if value < 0:
+            raise ValueError(f'{value} < 0. Unixtime cant be negative.')
+        if value > 4294967295:
+            raise ValueError(f'{value} > 4294967295. Unixtime cant be bigger than 2^32')
+
+    def check_raw(self, value: str):
+        v = int(value)
+        if v < 0:
+            raise ValueError(f'{v} < 0. Unixtime cant be negative.')
+        if v > 4294967295:
+            raise ValueError(f'{v} > 4294967295. Unixtime cant be bigger than 2^32')
+
+    def raw_to_py(self, raw_value: str, strict: bool) -> unixtime:
+        return unixtime(raw_value)
+
+    def py_to_raw(self, value: unixtime) -> str:
+        return str(value)
+    
+    @property
+    def my_type(self):
+        return unixtime
+
+
 class Time(FieldProcessor):
     """Time processor."""
 
@@ -179,9 +207,10 @@ class Time(FieldProcessor):
 
 
 unixtime_t = UnixTime()
-str_datetime_z_t = DateAsString(format_string='%Y-%m-%d %H:%M:%S %z')
+str_unixtime_t = UnixtimeAsString()
+datetime_t = DateTime()
 str_datetime_t = DateAsString(format_string='%Y-%m-%d %H:%M:%S')
+str_datetime_z_t = DateAsString(format_string='%Y-%m-%d %H:%M:%S %z')
 str_date_t = DateAsString(format_string='%Y-%m-%d')
 str_time_t = TimeAsString(format_string='%H:%M')
-str_unixtime_t = UnixtimeAsString(format_string='%Y-%m-%d %H:%M:%S')
-datetime_t = DateTime()
+str_date_unixtime_t = UnixtimeAsDateString(format_string='%Y-%m-%d %H:%M:%S')
