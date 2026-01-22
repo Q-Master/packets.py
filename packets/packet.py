@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import List, Optional, Type, Self, TYPE_CHECKING, TypeVar, cast, MutableMapping, Union
+from typing import Any, Optional, Type, Self, TYPE_CHECKING, TypeVar, cast, MutableMapping
 import zlib
 import types
 from itertools import groupby
@@ -33,6 +33,20 @@ class Packet(PacketBase):
                     raise ValueError(f'Failed to parse "{cls.__name__}::{field_name}": {e}')
                 attrs[field_name] = field_value
         return attrs
+
+    @classmethod
+    def with_fields(cls, *fields) -> Type[Self]:
+        fields_set = set(fields)
+        cls_fields_set = set(cls.fields_names())
+        if len(fields_set&cls_fields_set) != len(fields_set):
+            raise TypeError(f'Failed to prepare packet. Unknown fields: {fields_set-fields_set&cls_fields_set}')
+        namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone(override=False) for field_name in fields_set}
+        namespace['__raw_mapping__'] = {field_name: cls.__fields__[field_name].info.py_name for field_name in fields_set}
+        namespace['__tags__'] = cls.__tags__
+        namespace['__annotations__'] = {field_name: cls.__annotations__[field_name] for field_name in fields_set}
+        namespace['__local_fields_names__'] = list(fields_set)
+        partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', (Packet, ), exec_body=lambda ns: ns.update(namespace))
+        return partial_class
 
     def dump(self, raw=True) -> dict:
         js_dict = {}

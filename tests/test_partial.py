@@ -17,6 +17,9 @@ class Front(Packet):
     c: Internal = makeField(Internal, required=True)
 
 
+class InternalPartial(Internal.with_fields('d', 'f')):
+    pass
+
 class TestPacketDiff(unittest.TestCase):
     def test_packet_diff(self):
         pkt = Front(
@@ -33,3 +36,10 @@ class TestPacketDiff(unittest.TestCase):
         if pkt.is_modified():
             partial_pkt = pkt.dump_partial({'b': '1', 'c': {'d': '1', 'e': '1', 'f': '1'}})
             self.assertDictEqual(partial_pkt, {'c': {'d': 8, 'e': 'test2', 'f': ['1', '2', '6']}, 'non_B': 3.0})
+
+class TestWithFields(unittest.TestCase):
+    def test_with_fields(self):
+        with self.assertRaises(TypeError):
+            class InternalPartialFail(Internal.with_fields('x', 'f')):
+                pass
+        self.assertNotIn('e', InternalPartial.fields_names())
