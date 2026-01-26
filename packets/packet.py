@@ -35,16 +35,28 @@ class Packet(PacketBase):
         return attrs
 
     @classmethod
-    def with_fields(cls, *fields) -> Type[Self]:
-        fields_set = set(fields)
-        cls_fields_set = set(cls.fields_names())
+    def with_fields(cls, *field_names) -> Type[Self]:
+        fields_set = set(field_names) # raw names!!!
+        cls_fields_set = set(cls.__raw_mapping__.keys()) # raw names !!!
         if len(fields_set&cls_fields_set) != len(fields_set):
-            raise TypeError(f'Failed to prepare packet. Unknown fields: {fields_set-fields_set&cls_fields_set}')
-        namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone(override=False) for field_name in fields_set}
-        namespace['__raw_mapping__'] = {field_name: cls.__fields__[field_name].info.py_name for field_name in fields_set}
+            raise TypeError(f'Failed to prepare packet. Unknown fields: {fields_set-(fields_set&cls_fields_set)}')
+        normal_naming = {raw_name: cls.__raw_mapping__[raw_name] for raw_name in fields_set }
+        namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone(override=False) for field_name in normal_naming.values()}
+        namespace['__raw_mapping__'] = normal_naming
         namespace['__tags__'] = cls.__tags__
-        namespace['__annotations__'] = {field_name: cls.__annotations__[field_name] for field_name in fields_set}
-        namespace['__local_fields_names__'] = list(fields_set)
+        annotations: dict = {}
+        for fn in normal_naming.values():
+            annotation = cls.__annotations__.get(fn)
+            if annotation:
+                annotations[fn] = annotation
+            else:
+                for base in cls.__bases__:
+                    annotation = base.__annotations__.get(fn)
+                    if annotation:
+                        annotations[fn] = annotation
+                        break
+        namespace['__annotations__'] = annotations
+        namespace['__local_fields_names__'] = list(normal_naming.values())
         partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', (Packet, ), exec_body=lambda ns: ns.update(namespace))
         return partial_class
 

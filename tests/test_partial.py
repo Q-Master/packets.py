@@ -43,3 +43,7 @@ class TestWithFields(unittest.TestCase):
             class InternalPartialFail(Internal.with_fields('x', 'f')):
                 pass
         self.assertNotIn('e', InternalPartial.fields_names())
+        class FrontPartial(Front.with_fields(
+            'a', 'non_B'
+        )):
+            pass
