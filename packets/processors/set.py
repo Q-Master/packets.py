@@ -1,52 +1,79 @@
 # -*- coding:utf-8 -*-
-from typing import Union, Iterable, TypeVar, Generic
-from .._fieldprocessorbase import FieldProcessor
+from typing import TypeVar, Optional, Set as TSet, Self
+from .base import TypeDef
+from .._packetbase import PacketBase
 
 
-__all__ = ['Set']
+__all__ = ['SetT', 'Set']
 
 
-T = TypeVar('T', bound=FieldProcessor)
+_VT=TypeVar('_VT')
 
-class Set(Generic[T], FieldProcessor):
-    """Set of elements processor"""
-    _element_type: FieldProcessor
 
-    @property
-    def zero_value(self):
-        return set()
+class SetT(TSet[_VT]):
+    _ro = False
+    __parent__: Optional[PacketBase] = None
+    __modified__: bool = False
 
-    def __init__(self, element_type: T):
-        """Constructor
+    def add(self, value: _VT):
+        if not self._ro:
+            super().add(value)
+            self.set_modified()
+            if hasattr(value, 'set_modified'):
+                value.__parent__ = self # type: ignore
 
-        Args:
-            element_type (Union[FieldProcessor, PacketBase]): type of the elements of the set.
+    def discard(self, value: _VT):
+        if not self._ro:
+            super().discard(value)
+            self.set_modified()
 
-        Raises:
-            TypeError: if other than FieldProcessor or PacketBase ancestors given.
-        """        
-        super(Set, self).__init__()
-        if isinstance(element_type, FieldProcessor):
-            self._element_type = element_type
-        else:
-            raise TypeError(f'element_type must be FieldType ({type(element_type)})')
+    def set_ro(self, ro: bool):
+        self._ro = ro
+        for vi in self:
+            if isinstance(vi, PacketBase):
+                vi.set_ro(ro)
+    
+    def is_modified(self) -> bool:
+        return self.__modified__
+    
+    def set_modified(self):
+        self.__modified__ = True
+        if self.__parent__:
+            self.__parent__.set_modified()
 
-    def check_py(self, value: Union[list, tuple, set]):
-        assert isinstance(value, (list, tuple, set)), (value, type(value))
-        assert len(set(value)) == len(value), f'not a unique list of values in {value}'
 
-    def check_raw(self, value: Union[list, tuple]):
-        assert isinstance(value, (list, tuple)), (value, type(value))
+class Set(TypeDef[SetT[_VT]]):
+    def __init__(self, typ: TypeDef[_VT]) -> None:
+        super().__init__()
+        self._typ = typ
+    
+    def check_py(self, v: SetT[_VT]) -> bool:
+        return isinstance(v, (set, SetT))
+    
+    def check_raw(self, r) -> bool:
+        return isinstance(r, set)
+    
+    def raw_to_py(self, r, strict = True) -> SetT[_VT]:
+        return SetT[_VT]([self._typ.raw_to_py(ri, strict) for ri in r])
 
-    def raw_to_py(self, raw_sequence: Iterable, strict: bool) -> set:
-        return {self._element_type.raw_to_py(value, strict) for value in raw_sequence}
+    def py_to_raw(self, v: SetT[_VT]) -> set:
+        return set(map(self._typ.py_to_raw, v))
 
-    def py_to_raw(self, sequence: set) -> list:
-        return [self._element_type.py_to_raw(value) for value in sequence]
+    def py_to_py(self, v: Optional[SetT[_VT]]) -> Optional[SetT[_VT]]:
+        return None if v is None else SetT[_VT](v) if not isinstance(v, SetT) else v
 
-    def dump_partial(self, sequence) -> list:
-        return [self._element_type.dump_partial(value) for value in sequence]
+    def zero_value(self) -> SetT[_VT]:
+        return SetT[_VT](set())
 
-    @property
-    def my_type(self):
-        return set[self._element_type.my_type]
+    def set_ro(self, ro: bool):
+        super().set_ro(ro)
+        self._typ.set_ro(ro)
+
+    def self_type(self):
+        typ = self._typ.self_type()
+        return TSet[typ]
+
+    def clone(self) -> Self:
+        c = self.__class__(self._typ.clone())
+        c.set_ro(False)
+        return c

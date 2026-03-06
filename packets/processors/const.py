@@ -1,35 +1,40 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Generic
-from .._fieldprocessorbase import FieldProcessor
+from typing import Self, Type
+from .base import TypeDef, T
 
 
 __all__ = ['Const']
 
 
-T = TypeVar('T')
+class Const(TypeDef[T]):
+    def __new__(cls, typ: Type[TypeDef[T]]) -> TypeDef[T]:
+        inst = super.__new__(typ)
+        inst.set_ro(True)
+        return inst
+    
+    def check_py(self, v) -> bool:
+        assert False, ('Constants not checkable')
+        return True
+    
+    def check_raw(self, r) -> bool:
+        assert False, ('Constants not checkable')
+        return True
+    
+    def raw_to_py(self, r, strict=True):
+        assert False, ('Constants not checkable')
+        return None
 
+    def py_to_raw(self, v):
+        assert False, ('Constants not checkable')
+        return None
 
-class Const(Generic[T], FieldProcessor):
-    """Processor for immutable values"""
-    has_mutable_value = False
-    has_flat_value = True
+    def zero_value(self):
+        assert False, ('Constants not checkable')
+        return None
 
-    def __init__(self, value: T):
-        self._value = value
-        self.zero_value = value
+    def is_const(self) -> bool: 
+        return True
 
-    def check_py(self, py_value):
-        pass
-
-    def check_raw(self, raw_value):
-        pass
-
-    def raw_to_py(self, raw_value, strict) -> T:
-        return self._value
-
-    def py_to_raw(self, py_value) -> T:
-        return self._value
-
-    @property
-    def my_type(self):
-        return type(self._value)
+    def clone(self):
+        assert False, ('Constants not checkable')
+        return None

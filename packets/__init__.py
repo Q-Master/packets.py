@@ -1,19 +1,20 @@
 # -*- coding:utf-8 -*-
 from . import _json as json
-from ._packetbase import PacketBase, DiffKeys
-from ._fieldprocessorbase import FieldProcessor
-from .packet import Packet, TablePacket, ArrayPacket, PacketWithID
+from ._packetbase import PacketBase
+from ._types import DiffKeys
+from .packet import Packet, TablePacket, ArrayPacket
 from .field import Field, makeField
+from .processors.base import TypeDef
 
 
 __all__ = [
     'json', 
-    'PacketBase', 'Packet', 'TablePacket', 'ArrayPacket', 'PacketWithID', 'DiffKeys', 
-    'FieldProcessor', 'Field', 'makeField'
+    'PacketBase', 'Packet', 'TablePacket', 'ArrayPacket', 'DiffKeys', 
+    'Field', 'makeField', 'TypeDef'
 ]
 
 
-__version__ = '0.11.1'
+__version__ = '0.20.0'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'
@@ -25,4 +26,4 @@ __author__ = 'Vladimir Berezenko'
 __email__ = 'qmaster2000@gmail.com'
 
 __license__ = 'MIT'
-__copyright__ = 'Copyright 2019-2023 Vladimir Berezenko'
+__copyright__ = 'Copyright 2019-2026 Vladimir Berezenko'

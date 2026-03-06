@@ -1,8 +1,7 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Type, Generic
-from enum import EnumMeta, Enum
-from ._types import StringTypes
-from .._fieldprocessorbase import FieldProcessor
+from typing import TypeVar, Type, Self
+from enum import Enum
+from .base import TypeDef
 
 
 __all__ = ['Enumeration', 'EnumerationByName']
@@ -11,48 +10,46 @@ __all__ = ['Enumeration', 'EnumerationByName']
 T = TypeVar('T', bound=Enum)
 
 
-class Enumeration(Generic[T], FieldProcessor):
+class Enumeration(TypeDef[T]):
     """Enum processor. Stores **value** of enum in serialization"""
 
-    def __init__(self, enum: Type[T]):
-        assert issubclass(enum, Enum)
-        self._enum = enum
+    def __init__(self, typ: Type[T]) -> None:
+        super().__init__()
+        self._typ = typ
 
-    def check_py(self, py_value):
-        assert isinstance(py_value, self._enum)
+    def check_py(self, v: T) -> bool:
+        return isinstance(v, Enum)
 
-    def check_raw(self, raw_value):
-        pass
+    def check_raw(self, r) -> bool:
+        return True
 
-    def raw_to_py(self, raw_value, strict):
-        return self._enum(raw_value)
+    def raw_to_py(self, r, strict=True) -> T:
+        return self._typ(r)
 
-    def py_to_raw(self, enum_element):
-        return enum_element.value
+    def py_to_raw(self, v: T):
+        return v.value
+    
+    def self_type(self) -> Type[T]:
+        return self._typ
 
-    @property
-    def my_type(self) -> Type[T]:
-        return self._enum
+    def zero_value(self) -> T:
+        return self._typ()
+    
+    def clone(self) -> Self:
+        c = self.__class__(self._typ)
+        c.set_ro(False)
+        return c
 
 
-class EnumerationByName(Generic[T], FieldProcessor):
+
+class EnumerationByName(Enumeration[T]):
     """Enum processor. Stores **name** of enum in serialization"""
-    def __init__(self, enum: Type[T]):
-        assert isinstance(enum, EnumMeta)
-        self._enum = enum
 
-    def check_py(self, py_value):
-        assert isinstance(py_value, self._enum)
+    def check_raw(self, r: str) -> bool:
+        return isinstance(r, str)
 
-    def check_raw(self, raw_value):
-        assert isinstance(raw_value, StringTypes)
+    def raw_to_py(self, r: str, strict=True) -> T:
+        return self._typ[r]
 
-    def raw_to_py(self, raw_value, strict):
-        return self._enum[raw_value]
-
-    def py_to_raw(self, enum_element):
-        return enum_element.name
-
-    @property
-    def my_type(self) -> Type[T]:
-        return self._enum
+    def py_to_raw(self, v: T) -> str:
+        return v.name

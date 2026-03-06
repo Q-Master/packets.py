@@ -7,34 +7,37 @@ The main idea of this project is to give easiness of managing serializable objec
 without any need to implement type checking, defaults, serializing and deserializing of objects.
 
 Installation
+
 ---
 You can use `pip` package manager to install `packets`. The most recent
 version of the library can be installed directly from Git repo:
 
 ```bash
-$ pip install git+https://github.com/Q-Master/packets.py.git
+pip install git+https://github.com/Q-Master/packets.py.git
 ```
 
 Usage
+
 ---
 Mostly usage examples could be seen in tests directory.
 The `packets` requires `ujson`, but it is not a strict requirement.
 
-
 ```python
 from typing import Optional
-from packets import Packet, makeField, int_t, string_t
+from packets import Packet, makeField, 
+from packets.typedef.int_t import int_t
+from packets.typedef.string_t import string_t
 
 class Parent(Packet):
     field1: int = makeField(int_t, 'a', required=True)
 
 
 class Child(Parent):
-    field1: int = makeField(default=3, override=True)
+    field1: int = makeField(int_t, default=3, override=True)
 
 class Show(Packet):
-    field1: int = Field(int_t, required=True)
-    field2: Optional[str] = Field(string_t)
+    field1: int = makeField(int_t, required=True)
+    field2: Optional[str] = makeField(string_t)
 
 parent = Parent(field1=2)
 packet = Child()

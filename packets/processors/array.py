@@ -1,66 +1,97 @@
 # -*- coding:utf-8 -*-
-from typing import Sequence as Seq
-from numbers import Integral
-from collections.abc import Sequence
-from .subpacket import SubPacket
-from ._types import StringTypes, SubElementTyping
+from typing import TypeVar, Optional, List, Iterable, Self
+from .base import TypeDef
 from .._packetbase import PacketBase
-from .._fieldprocessorbase import FieldProcessor
 
 
-__all__ = ['Array']
+__all__ = ['Array', 'ArrayT']
 
 
-class Array(FieldProcessor):
-    """Simple array processor"""
+_VT=TypeVar('_VT')
 
-    @property
-    def zero_value(self):
-        if not self._length:
-            return []
+
+class ArrayT(List[_VT]):
+    _ro = False
+    __parent__: Optional[PacketBase] = None
+    __modified__: bool = False
+
+    def __init__(self, iterable: Iterable[_VT] = (), size: Optional[int] = None) -> None:
+        self._size = size
+        self._ro = False
+        super().__init__(iterable)
+    
+    def __setitem__(self, index: int, value: _VT):
+        if not self._ro:
+            super().__setitem__(index, value)
+            if hasattr(value, 'set_modified'):
+                value.__parent__ = self # type: ignore
+    
+    def __delitem__(self, index: int):
+        if not self._ro:
+            super().__delitem__(index)
+    
+    def __len__(self) -> int:
+        return super().__len__() or self._size or 0
+    
+    def insert(self, index: int, value: _VT):
+        if not self._ro:
+            if self._size is None or len(self) < self._size:
+                super().insert(index, value)
+            else:
+                raise IndexError('Sized arrays doesnt support inserting or adding')
+
+    def set_ro(self, ro: bool):
+        self._ro = ro
+        for vi in self:
+            if isinstance(vi, PacketBase):
+                vi.set_ro(ro)
+
+    def is_modified(self) -> bool:
+        return self.__modified__
+    
+    def set_modified(self):
+        self.__modified__ = True
+        if self.__parent__:
+            self.__parent__.set_modified()
+
+
+class Array(TypeDef[ArrayT[_VT]]):
+    def __init__(self, typ: TypeDef[_VT], size: Optional[int] = None) -> None:
+        super().__init__()
+        self._typ = typ
+        self._size = size
+    
+    def check_py(self, v: ArrayT[_VT]) -> bool:
+        return isinstance(v, (list, ArrayT))
+    
+    def check_raw(self, r) -> bool:
+        return isinstance(r, list)
+    
+    def raw_to_py(self, r, strict = True) -> ArrayT[_VT]:
+        return ArrayT[_VT]([self._typ.raw_to_py(ri, strict) for ri in r], self._size)
+
+    def py_to_raw(self, v: ArrayT[_VT]) -> list:
+        return list(map(self._typ.py_to_raw, v))
+
+    def py_to_py(self, v: Optional[ArrayT[_VT]]) -> Optional[ArrayT[_VT]]:
+        return None if v is None else ArrayT[_VT](v, self._size) if not isinstance(v, ArrayT) else v
+    
+    def zero_value(self) -> ArrayT[_VT]:
+        if self._size:
+            data = ArrayT[_VT]([self._typ.zero_value() for _ in range(self._size)], size=self._size)
         else:
-            return [self._element_type.zero_value for _ in range(self._length)]
+            data = ArrayT[_VT]()
+        return data
 
-    @property
-    def element_type(self):
-        return self._element_type
+    def set_ro(self, ro: bool):
+        super().set_ro(ro)
+        self._typ.set_ro(ro)
 
-    @property
-    def length(self):
-        return self._length
+    def self_type(self):
+        typ = self._typ.self_type()
+        return ArrayT[typ]
 
-    def __init__(self, element_type: SubElementTyping, length=None):
-        super(Array, self).__init__()
-        assert isinstance(length, (type(None), Integral)), (length, type(length))
-        if isinstance(element_type, FieldProcessor):
-            self._element_type = element_type
-        elif issubclass(element_type, PacketBase):
-            self._element_type = SubPacket(element_type)
-        else:
-            raise TypeError(f'Array element must be either field processor or Packet not {type(element_type)}')
-        self._length = length
-
-    def check_py(self, value):
-        assert isinstance(value, Sequence), (value, type(value))
-        assert not isinstance(value, StringTypes), (value, type(value))
-        if self._length is not None and len(value) != self._length:
-            raise ValueError(f'Wrong array length {len(value)}({self._length})')
-
-    def check_raw(self, value):
-        assert isinstance(value, Sequence), (value, type(value))
-        assert not isinstance(value, StringTypes), (value, type(value))
-        if self._length is not None and len(value) != self._length:
-            raise ValueError(f'Wrong array length {len(value)}({self._length})')
-
-    def raw_to_py(self, raw_sequence, strict) -> list:
-        return [self._element_type.raw_to_py(value, strict) for value in raw_sequence]
-
-    def py_to_raw(self, sequence: Sequence):
-        return [self._element_type.py_to_raw(value) for value in sequence]
-
-    def dump_partial(self, sequence: Sequence) -> list:
-        return [self._element_type.dump_partial(value) for value in sequence]
-
-    @property
-    def my_type(self):
-        return Seq[self._element_type.my_type]
+    def clone(self) -> Self:
+        c = self.__class__(self._typ.clone(), self._size)
+        c.set_ro(False)
+        return c

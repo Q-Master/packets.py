@@ -1,110 +1,81 @@
-# -*- coding:utf-8 -*-
-from typing import Type
-from numbers import Integral, Real
-from ._types import NumberTyping
-from .._fieldprocessorbase import FieldProcessor
+# -*- coding: utf8 -*-
+from typing import TypeVar, Optional, Union, Type, Self
+from .base import TypeDef
 
 
-__all__ = [
-    'Number', 'NumberAsString', 'Percent', 'float_t', 'double_t', 'int8_t', 'uint8_t', 
-    'int16_t', 'uint16_t', 'int32_t', 'uint32_t', 'int_t', 'uint_t', 'int64_t' ,'uint64_t', 'long_t', 'str_int_t', 'percent_t'
-]
+__all__ = ['Number', 'Percent', 'NumberAsString']
 
 
-class Number(FieldProcessor):
-    """Any number processor"""
-    has_mutable_value = False
-
-    valid_types = {
-        int: Integral,
-        float: Real,
-    }
-
-    def __init__(self, number_type: Type[NumberTyping], min_=None, max_=None):
-        """Constructor
-
-        Args:
-            number_type (int | float): type of number. Might be `int` or `float`.
-            min_ (int|float, optional): minimal value for type. Defaults to None.
-            max_ (int|float, optional): maximum value for type. Defaults to None.
-        """
-        self._number_type = number_type
-        self.min = min_
-        self.max = max_
-        self._type_for_checks = self.valid_types[number_type]
-        if self.min:
-            self.zero_value = number_type(self.min)
-        else:
-            self.zero_value = number_type(0)
-
-    def check_py(self, value: NumberTyping):
-        assert isinstance(value, self._type_for_checks), (value, type(value), self._type_for_checks)
-        if self.min is not None and value < self.min:
-            raise ValueError(f'{value} < {self.min}')
-        if self.max is not None and value > self.max:
-            raise ValueError(f'{value} > {self.max}')
-
-    def check_raw(self, value: NumberTyping):
-        if self.min is not None and self._number_type(value) < self.min:
-            raise ValueError(f'{value} < {self.min}')
-        if self.max is not None and self._number_type(value) > self.max:
-            raise ValueError(f'{value} > {self.max}')
-
-    def raw_to_py(self, raw_value: NumberTyping, strict: bool):
-        processed_value = self._number_type(raw_value)
-        return processed_value
-
-    def py_to_raw(self, value: NumberTyping):
-        return self._number_type(value)
-
-    def to_number_as_string(self):
-        return NumberAsString(self._number_type, self.min, self.max)
-
-    @property
-    def my_type(self):
-        return self._number_type
+T=TypeVar('T', bound=Union[int, float])
 
 
-class NumberAsString(Number):
-    """Same as simple `Number`, but serializes itself to string"""
-    def check_py(self, value):
-        value = self._number_type(float(value))
-        super().check_py(value)
+class Number(TypeDef[T]):
+    _ro = False
 
-    check_raw = check_py
+    def __init__(self, typ: type[T], min: Optional[T] = None, max: Optional[T] = None) -> None:
+        self._typ = typ
+        self._min = min
+        self._max = max
+        self._ro = False
+    
+    def check_py(self, v: T) -> bool:
+        if not isinstance(v, (int, float)):
+            return False
+        if self._min is not None and self._typ(v) < self._min:
+            return False
+        if self._max is not None and self._typ(v) > self._max:
+            return False
+        return True
+    
+    def check_raw(self, r) -> bool:
+        if not isinstance(r, (int, float)):
+            return False
+        if self._min is not None and self._typ(r) < self._min:
+            return False
+        if self._max is not None and self._typ(r) > self._max:
+            return False
+        return True
+    
+    def raw_to_py(self, r, strict=True) -> T:
+        return self._typ(r)
 
-    def raw_to_py(self, raw_value: str, strict: bool): # type: ignore[override]
-        processed_value = self._number_type(float(raw_value))
-        return processed_value
+    def py_to_raw(self, v: T) -> T:
+        return v
 
-    def py_to_raw(self, value) -> str:
-        return str(value)
+    def zero_value(self) -> T:
+        return self._typ(0)
 
+    def self_type(self) -> Type[T]:
+        return self._typ
 
-class Percent(Number):
-    """Percent number processor"""
-    def raw_to_py(self, *args, **kwargs) -> float:
-        result = super().raw_to_py(*args, **kwargs)
-        if result is not None:
-            return result / 100.
-        return 0
-
-    def py_to_raw(self, value):
-        return super().py_to_raw(value) * 100.
+    def clone(self) -> Self:
+        c = self.__class__(self._typ, self._min, self._max)
+        c.set_ro(False)
+        return c
 
 
-float_t = Number(float)
-double_t = float_t
-int8_t = Number(int, -128, 127)
-uint8_t = Number(int, 0, 255)
-int16_t = Number(int, -32768, 32767)
-uint16_t = Number(int, 0, 65535)
-int32_t = Number(int, -2147483648, 2147483647)
-uint32_t = Number(int, 0, 4294967295)
-int_t = int32_t
-uint_t = uint32_t
-int64_t = Number(int, -9223372036854775808, 9223372036854775807)
-uint64_t = Number(int, 0, 18446744073709551615)
-long_t = int64_t
-str_int_t = NumberAsString(int)
-percent_t = Percent(float, 0, 100)
+
+class Percent(Number[float]):
+    def raw_to_py(self, r, strict=True) -> float:
+        res =  super().raw_to_py(r)
+        return res/100.0
+
+    def py_to_raw(self, v: float) -> float:
+        return super().py_to_raw(v) * 100.0
+
+
+class NumberAsString(Number[T]):
+    def check_raw(self, r: str) -> bool:
+        if not isinstance(r, str):
+            return False
+        try:
+            raw = self._typ(float(r))
+        except Exception:
+            return False
+        return super().check_raw(raw)
+
+    def raw_to_py(self, r: str, strict=True) -> T:
+        return super().raw_to_py(float(r))
+    
+    def py_to_raw(self, v: T) -> str:
+        return f'{v}'

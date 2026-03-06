@@ -1,163 +1,197 @@
 # -*- coding:utf-8 -*-
-from typing import Optional, Type, Any, overload, TypeVar, Literal, cast
+from typing import Generic, TypeVar, TYPE_CHECKING, Union, Optional, Any, overload, Type, Self, Literal
 from copy import deepcopy
-from ._fieldinfo import FieldInfo, _not_set
-from .processors import Const, SubPacket
-from ._packetbase import PacketBase
-from ._fieldbase import FieldBase
-from ._fieldprocessorbase import FieldProcessor
+from ._types import DiffKeys
+from .processors.base import TypeDef
+from .processors import Subpacket, Hash, Set, Array
+from .typedef.object_t import Object
+if TYPE_CHECKING:
+    from ._packetbase import PacketBase
 
 
-__all__ = ['Field', 'makeField']
+class _not_set():
+    pass
 
 
-class Field(FieldBase):
-    __instances_created: int = 0
-    __number: int = 0
-    _info: FieldInfo
+FT = TypeVar('FT')
 
-    @property
-    def info(self) -> FieldInfo:
-        return self._info
 
-    def __new__(cls, *args, **kwargs):
-        instance = object.__new__(cls)
-        cls.__instances_created += 1
-        instance.__number = cls.__instances_created
-        return instance
+class Field(Generic[FT]):
+    def __init__(self, typ: TypeDef[FT], name: Optional[str] = None, default: Union[FT, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False) -> None:
+        self._typ = typ.clone()
+        self._name = name
+        self._default_value = default
+        self._instance_name = ''
+        self._instance_modified_name = ''
+        self._required = required
+        self._override = override
+        #print(f'INIT {self.__class__.__name__}')
 
-    def __init__(self, processor: Optional[FieldProcessor] | Type[PacketBase] = None, name: Optional[str] = None, default: Any = _not_set, required: Optional[bool] = None, override: Optional[bool] = None):
-        """Packet field constructor
+    def __set__(self, instance: 'PacketBase', value: FT):
+        #print(f'Set {self._name} to {value}')
+        if self._typ.is_const() and not instance.is_loading():
+            #print(f'Not setting {instance.__class__.__name__}::{self.name}. CONST')
+            return
+        if self._required and value is not None:
+            assert self._typ.check_py(value), f'Value {value} of {type(value)} is not valid'
+        value = self._typ.py_to_py(value)
+        setattr(instance, self._instance_name, value)
+        has_modified = hasattr(value, 'set_modified')
+        if has_modified:
+            value.__parent__ = instance # type: ignore
+            if not instance.is_loading():
+                value.set_modified() # type: ignore
+        if not instance.is_loading():
+            setattr(instance, self._instance_modified_name, True)
+            instance.set_modified()
 
-        Args:
-            processor (FieldProcessor, optional): field type processor. Defaults to None.
-            name (str, optional): serialized field name. Defaults to None.
-            default (Any, optional): default field value. Defaults to _not_set.
-            required (bool, optional): flag if the field is required. Defaults to None.
-            override (bool, optional): flag if the field is overloaded. Defaults to None.
-        """
-        self._info = FieldInfo(self._fix_processor(processor), name, default, required, override)
+    @overload
+    def __get__(self, instance: None, owner = None) -> Self:...
+
+    @overload
+    def __get__(self, instance: 'PacketBase', owner = None) -> FT:...
+
+    def __get__(self, instance: 'Union[PacketBase, None]', owner = None) -> Union[FT, Self, None]:
+        if instance is None:
+            return self
+        try:
+            return getattr(instance, self._instance_name)
+        except AttributeError:
+            return None
+    
+    def __delete__(self, instance: 'PacketBase'):
+        delattr(instance, self._instance_name)
+        delattr(instance, self._instance_modified_name)
+        instance.set_modified()
+
+    def __set_name__(self, owner: 'PacketBase', name):
+        if name == '__default_field__':
+            return
+        if self._name is None:
+            self._name = name
+        f = owner.__fields__.get(name, None)
+        if f:
+            if not self._override:
+                raise TypeError(f'Repeated field "{owner.__name__}::{self._name}"')
+            else:
+                self._name = f._name
+                self._instance_name = f._instance_name
+                self._instance_modified_name = f._instance_modified_name
+                self._required = f._required
+        if owner.__no_optionals__ and (not self._required and self._default_value is _not_set):
+            raise TypeError(f'Packet "{owner.__name__}" can not have optional field "{self._name}"')
+        self._instance_name = f'_{name}'
+        self._instance_modified_name = f'_{name}_modified'
+        owner.__fields__[name] = self
+        owner.__local_fields_names__.append(name)
+        assert self._name is not None
+        owner.__raw_mapping__[self._name] = name
+        #print(f'SET NAME to {self._name}')
 
     @property
     def name(self) -> str:
-        assert self._info.name is not None
-        return self._info.name
+        return self._name # type: ignore
 
-
-    def on_packet_class_create(self, parent_field: 'Field', field_name: str) -> None:
-        """Callback to set field name on packet creation
-
-        Args:
-            parent_field (Field): parent field
-            field_name (str): in-python field name
-        """
-
-        if parent_field is not None:
-            if not self._info.override == True:
-                raise TypeError(f'Repeated field {field_name}')
-            else:
-                new_info = parent_field._info.copy()
-                new_info.update(self._info)
-                self._info = new_info
-        self._info.set_defaults(None, False, False)
-        self._info.update_name(field_name)
-
-    def raw_to_py(self, raw_value, strict):
-        if raw_value is None:
-            if self._info.py_default is None:
-                py_value = None
-            else:
-                py_value = deepcopy(self._info.py_default)
-        else:
-            assert self._info.processor is not None
-            self._info.processor.check_raw(raw_value)
-            py_value = self._info.processor.raw_to_py(raw_value, strict)
-
-        if self._info.required and py_value is None:
-            if not strict:
-                assert self._info.processor is not None
-                py_value = self._info.processor.zero_value
-            else:
-                raise ValueError(f'Field required')
-        return py_value
-
-    def py_to_raw(self, py_value):
-        if py_value is None:
-            if self._info.py_default is None:
-                raw_value = None
-            else:
-                raw_value = deepcopy(self._info.default)
-        else:
-            assert self._info.processor is not None
-            self._info.processor.check_py(py_value)
-            raw_value = self._info.processor.py_to_raw(py_value)
-
-        if self._info.required and raw_value is None:
-            raise ValueError(f'Field required {self}')
-        return raw_value
-
-    def clone(self, processor: Optional[FieldProcessor] | Type[PacketBase] = None, **kwargs):
-        new_info = self._info.copy()
-        new_info.update_params(self._fix_processor(processor), **kwargs)
-        field = self.__class__()
-        field._info = new_info
-        return field
-
-    def frozen_clone(self, value):
-        field = self.__class__(
-            Const(value),
-            name=self._info.name,
-            default=value,
-            required=self._info.required,
-            override=True
-        )
-        assert self._info.py_name is not None, 'Packet field name cant be None'
-        field.on_packet_class_create(self, self._info.py_name)
-        return field
-
-    def dump_partial(self, value):
-        assert self._info.processor is not None
-        return self._info.processor.dump_partial(value)
+    @property
+    def required(self) -> bool:
+        return self._required
     
-    def __str__(self):
-        return f'<{self.__class__.__name__}("{self._info.py_name}", "{self._info.name}")>'
+    @property
+    def override(self) -> bool:
+        return self._override
+    
+    @property
+    def has_default(self) -> bool:
+        return self._default_value is not _not_set
 
-    def __cmp__(self, other):
-        return ((self.__number > other.__number) - (self.__number < other.__number))
-
-    def _fix_processor(self, processor: Optional[FieldProcessor] | type[PacketBase]) -> Optional[FieldProcessor]:
-        if isinstance(processor, FieldProcessor):
-            return processor
-        elif isinstance(processor, type(None)):
-            return None
-        elif issubclass(processor, PacketBase):
-            return SubPacket(processor)
+    def is_modified(self, instance: 'PacketBase') -> bool:
+        if isinstance(self._typ, (Subpacket, Set, Hash, Array, Object)):
+            return getattr(instance, self._instance_name).is_modified()
+        return getattr(instance, self._instance_modified_name, False)
+    
+    def raw_to_py(self, r, strict = True) -> Optional[FT]:
+        if r is None:
+            if self._required and strict:
+                raise ValueError(f'Field "{self._name}" required')
+            if self._default_value is _not_set:
+                v = None
+            else:
+                v = deepcopy(self._default_value)
         else:
-            raise TypeError(f'wrong processor: {type(processor)}')
+            if not self._typ.check_raw(r):
+                raise ValueError(f'RAW value {r} is not valid')
+            v = self._typ.raw_to_py(r, strict)
+        if v is None:
+            if self._required and strict:
+                raise ValueError(f'Field "{self._name}" required')
+            else:
+                return None
+        return self._typ.raw_to_py(r, strict)
+
+    def py_to_raw(self, v: FT):
+        if v is None:
+            if self._default_value is _not_set or self._default_value is None:
+                r = None
+            else:
+                r = self._typ.py_to_raw(self._default_value) # type: ignore
+        else:
+            if not self._typ.check_py(v):
+                raise ValueError(f'Value {v} is not valid')
+            r = self._typ.py_to_raw(v)
+        
+        if self._required and r is None:
+            raise ValueError(f'Field required "{self._name}"')
+        return r
+
+    def update_defaults(self, instance: 'PacketBase'):
+        if self._default_value is not _not_set:
+            setattr(instance, self._instance_name, deepcopy(self._default_value))
+
+    def clone(self) -> Self:
+        return self.__class__(self._typ, self._name, self._default_value, self._required, self._override)
+
+    def zero_value(self) -> FT:
+        return self._typ.zero_value()
+    
+    def set_ro(self, ro: bool):
+        self._typ.set_ro(ro)
+
+    def diff_keys(self, instance: 'PacketBase') -> Optional[Union[str, None, DiffKeys]]:
+        if self.is_modified(instance):
+            data = getattr(instance, self._instance_name)
+            return self._typ.diff_keys(data)
+        return None
 
 
 
-_P = TypeVar('_P', bound=PacketBase)
+
+_PT = TypeVar('_PT', bound='PacketBase')
 
 
 @overload
-def makeField(processor: Type[_P], name: Optional[str] = ..., default: Any | None | _not_set = ..., required: Literal[False] = False, override: Optional[bool] = ...) -> Optional[_P]: ...
+def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default = _not_set, required: Literal[False] = False, override: bool = ...) -> Optional[FT]: ...
 
 @overload
-def makeField(processor: Type[_P], name: Optional[str] = ..., default: Any | None | _not_set = ..., required: Literal[True] = True, override: Optional[bool] = ...) -> _P: ...
-
-
-@overload
-def makeField(processor: FieldProcessor, name: Optional[str] = ..., default: Any | None | _not_set = ..., required: Literal[True] = True, override: Optional[bool] = ...) -> Any: ...
+def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default = _not_set, required: Literal[True] = True, override: bool = ...) -> FT: ...
 
 @overload
-def makeField(processor: FieldProcessor, name: Optional[str] = ..., default: Any | None | _not_set = ..., required: Literal[False] = False, override: Optional[bool] = ...) -> Optional[Any]: ...
-
+def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default: Union[Any, None] = ..., required: bool = ..., override: bool = ...) -> FT: ...
 
 @overload
-def makeField(processor: Optional[FieldProcessor] | Type[PacketBase] = ..., name: Optional[str] = ..., default: Any | None | _not_set = ..., required: Literal[False] = False, override: Optional[bool] = ...) -> Optional[Any]: ...
+def makeField(processor: Type[_PT], name: Optional[str] = ..., default = _not_set, required: Literal[False] = False, override: bool = ...) -> Optional[_PT]: ...
 
+@overload
+def makeField(processor: Type[_PT], name: Optional[str] = ..., default = _not_set, required: Literal[True] = True, override: bool = ...) -> _PT: ...
 
-def makeField(processor: Optional[FieldProcessor] | Type[PacketBase] = None, name: Optional[str] = None, default: Any | None | _not_set =_not_set, required: Optional[bool] = None, override: Optional[bool] = None) -> Any:
-    fld = Field(processor, name, default, required, override)
-    return fld
+@overload
+def makeField(processor: Type[_PT], name: Optional[str] = ..., default: Union[Any, None] = ..., required: bool = ..., override: bool = ...) -> _PT: ...
+
+def makeField(processor: Union[TypeDef[FT], Type[_PT]], name: Optional[str] = None, default: Union[Any, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False) -> Any:
+    if isinstance(processor, TypeDef):
+        typ = processor.self_type()
+        fld = Field[typ](processor, name, default, required, override)
+        return fld
+    else:
+        proc: TypeDef[_PT] = Subpacket[_PT](processor)
+        fld = Field[_PT](proc, name, default, required, override)
+        return fld

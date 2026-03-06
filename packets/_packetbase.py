@@ -1,144 +1,125 @@
 # -*- coding:utf-8 -*-
-from typing import Any, List, Set, Dict, TypeVar, Type, Self, Optional, Union, TypeAlias
+from typing import TYPE_CHECKING, Union, TypeVar, Type, List, Dict, Any, TypeAlias, Self, Optional
 import pickle
-from copy import deepcopy
-from collections import Counter
 from abc import ABCMeta, abstractmethod
 from . import json
-from ._fieldbase import FieldBase
-
-__all__ = ['PacketBase']
+from ._types import DiffKeys
+if TYPE_CHECKING:
+    from .field import Field
 
 
 class PacketMeta(ABCMeta):
     def __new__(cls, cls_name, bases, namespace):
         fields = {}
-        tags = set(namespace.get('packet_tags', []))
-        annotations: dict = namespace.get('__annotations__', {}) 
-
+        rm = {}
         for base in bases:
             if hasattr(base, '__fields__'):
-                for field_name, field in base.__fields__.items():
-                    if field_name != 'packet_id' and field.info.is_override:
-                        assert field_name not in fields, f'Repeated field {field_name} (class {base})'
-                    fields[field_name] = field
-            if hasattr(base, '__tags__'):
-                tags.update(base.__tags__)
-        local_fields = []
-        for field_name, field in namespace.items():
-            if isinstance(field, FieldBase) and field_name != '__default_field__':
-                field.on_packet_class_create(fields.get(field_name), field_name)
-                fields[field_name] = field
-                local_fields.append(field_name)
-                if field_name not in annotations.keys():
-                    annotations[field_name] = field.info.my_type
-        namespace['__annotations__'] = annotations
-        for field_name, count in Counter(field.info.name for field in fields.values()).items():
-            if count > 1:
-                raise TypeError(f'Packet "{cls_name}" has two fields with same name: {field_name}')
+                fields = base.__fields__.copy()
+                rm = base.__raw_mapping__.copy()
         namespace['__fields__'] = fields
-        namespace['__local_fields_names__'] = local_fields
-        namespace['__tags__'] = tags
-        namespace['__raw_mapping__'] = {field.info.name: field.info.py_name for field_name, field in fields.items()}
+        namespace['__raw_mapping__'] = rm
         return super().__new__(cls, cls_name, bases, namespace)
 
 
 T = TypeVar('T', bound='PacketBase')
-DiffKeys: TypeAlias = Dict[str, Union[str, 'DiffKeys']]
+
 
 class PacketBase(metaclass=PacketMeta):
-    """Base class for packets"""
-    
-    __fields__: Dict[str, FieldBase] = {}
+    __fields__: dict[str, 'Field'] = {}
     __local_fields_names__: List[str] = []
-    __tags__: Set[str] = set()
     __raw_mapping__: Dict[str, str] = {}
-    __modified = False
+    __modified__: bool
+    __loading__: bool
+    __no_optionals__: bool = False
+    __parent__: 'Optional[PacketBase]' = None
+
+    def __init__(self, __strict__=True, **kwargs) -> None:
+        self.__loading__ = True
+        if kwargs:
+            for field_name, field_processor in self.__fields__.items():
+                v = kwargs.get(field_name, None)
+                try:
+                    if v is None:
+                        v = field_processor.raw_to_py(None, __strict__)
+                except Exception as e:
+                    self.__loading__ = False
+                    raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
+                setattr(self, field_name, v)
+        elif __strict__: 
+            for f in self.__fields__.values():
+                if f.required and not f.has_default:
+                    raise ValueError(f'Failed to parse "{self.__class__.__name__}", required fields missing')
+                else:
+                    f.update_defaults(self)
+        self.__loading__ = False
+        self.__modified__ = False
 
     def __repr__(self) -> str:
-        return '<%s>' % (', '.join(
-                ': '.join((field_name, str(getattr(self, field_name)))) for field_name in self.__fields__ if getattr(self, field_name) is not None
-            )
+        pkt = ', '.join(
+            f'{field_name}:{getattr(self, field_name)}' for field_name in self.field_names() if getattr(self, field_name) is not None
         )
+        return f'{{{pkt}}}'
+    
+    def __eq__(self, other: Self) -> bool:
+        if isinstance(other, PacketBase):
+            if self.__class__ != other.__class__:
+                return False
+            if self.field_names() != other.field_names():
+                return False
+            for py_name in self.field_names():
+                if getattr(self, py_name) != getattr(other, py_name):
+                    return False
+            return True
+        return False
 
-    @classmethod
-    def fields_names(cls):
-        """Returns list of field names
-
-        Returns:
-            List[str]: list of all field names used in that packet
-        """
-        return cls.__fields__.keys()
-
-
-    @classmethod
-    def local_fields_names(cls):
-        """Returns list of field names local to this packet
-
-        Returns:
-            List[str]: list of local field names used only in that packet
-        """
-        return iter(cls.__local_fields_names__)
-
-    @classmethod
-    def escaped_fields_names(cls) -> List[str]:
-        """Returns escaped list of field names
-
-        Returns:
-            List[str]: escaped list of all field names used in that packet
-        """
-        return [f'"{key}"' for key in cls.__fields__.keys()]
-
-    @classmethod
-    def __subclasshook__(cls, other):
-        try:
-            other_mro = other.__mro__
-            if PacketBase in other_mro:
-                if any((cls.__name__ == x.__name__ for x in other_mro)):
-                    return True
-                if cls.__name__ == other.__name__:
-                    return True
-        except AttributeError:
-            pass
-        return NotImplemented
-
-    def __init__(self, **kwargs) -> None:
-        super().__init__()
-        strict = kwargs.pop('__strict', True)
-        for field_name, field_processor in self.__fields__.items():
-            try:
-                if field_name not in kwargs:
-                    value = field_processor.raw_to_py(None, strict=strict)
-                else:
-                    value = kwargs.pop(field_name)
-            except Exception as e:
-                raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
-            setattr(self, field_name, value)
-        self.__modified = False
-        assert not kwargs, f'Extra arguments: {kwargs}'
-
+    def __ne__(self, other: Self) -> bool:
+        return not self == other
+    
     def __setstate__(self, state):
         """Set state after Pickle deserialization
 
         Args:
             state (dict): restored state
         """
-        self.__dict__.update(state)
-        self.__modified = False
+        self.__dict__.update(state) # type: ignore
+        self.__modified__ = False
 
-    def __getstate__(self):
-        """Returns state for current packet
+    def __iter__(self):
+        for field_name in self.__class__.__fields__:
+            yield getattr(self, field_name)
 
-        Returns:
-            dict: current state of a packet
-        """        
-        state = self.__dict__.copy()
-        return state
+    def __deepcopy__(self, memo) -> Self:
+        return pickle.loads(pickle.dumps(self, protocol=-1))
 
-    @abstractmethod
-    def _parse_raw(self, raw_data, strict=True) -> dict:
-        """rtype: dict"""
-        pass
+    def __len__(self) -> int:
+        return len(self.__fields__)
+    
+    @classmethod
+    def local_field_names(cls) -> List[str]:
+        return cls.__local_fields_names__
+    
+    @classmethod
+    def field_names(cls):
+        return cls.__fields__.keys()
+        
+    def is_loading(self) -> bool:
+        return self.__loading__
+
+    def is_modified(self) -> bool:
+        return self.__modified__
+    
+    def set_modified(self):
+        self.__modified__ = True
+        if self.__parent__:
+            self.__parent__.set_modified()
+
+    def no_optionals(self):
+        return self.__no_optionals__
+
+    @classmethod
+    def set_ro(cls, ro: bool):
+        for field in cls.__fields__.values():
+            field.set_ro(ro)
 
     @classmethod
     def load(cls: Type[T], raw_data, strict=True) -> T:
@@ -151,24 +132,17 @@ class PacketBase(metaclass=PacketMeta):
         Returns:
             T: loaded packet
         """
-        pckt = cls(__strict=strict, **(cls._parse_raw(raw_data, strict)))
+        pckt = cls(__strict__=False)
+        pckt.__loading__ = True
+        try:
+            pckt._parse_raw(raw_data, strict)
+        finally:
+            pckt.__loading__ = False
         pckt.on_packet_loaded()
         return pckt
 
-    def update(self, raw_data):
-        """Updates all fields in already existing packet from iterable (dict, list, etc...) 
-
-        Args:
-            raw_data (dict | list | iterable): data to update fields to.
-        """
-        parsed = self._parse_raw(raw_data, strict=True)
-        for field_name in self.__fields__.keys():
-            if field_name in parsed.keys():
-                setattr(self, field_name, parsed[field_name])
-        self.on_packet_loaded()
-
     @classmethod
-    def loadz(cls: Type[T], s) -> T:
+    def loadz(cls: Type[T], s: bytes) -> T:
         """Load packet from zip packed source string
 
         Returns:
@@ -177,19 +151,25 @@ class PacketBase(metaclass=PacketMeta):
         return cls.load(json.loads(s.decode('zip')))
 
     @classmethod
-    def loads(cls: Type[T], s, strict=True) -> T:
+    def loads(cls: Type[T], s: str, strict=True) -> T:
         return cls.load(json.loads(s), strict)
 
-    def on_packet_loaded(self):
-        """Callback on packet load or update.
-        Need to be implemented in children if needed.
+    def update(self, raw_data):
+        self._parse_raw(raw_data, update=True)
+        self.on_packet_loaded()
+
+    def update_partial(self, field_pairs: Dict[str, Any]) -> None:
+        for k, v in field_pairs.items():
+            setattr(self, k, v)
+
+    @abstractmethod
+    def dump(self) -> Union[dict, list, type[None]]:
+        """Required interface method for packet serialization
         """        
         pass
 
     @abstractmethod
-    def dump(self) -> Any:
-        """Required interface method for packet serialization
-        """        
+    def dump_partial(self, field_paths: DiffKeys):
         pass
 
     def dumpz(self) -> bytes:
@@ -208,167 +188,41 @@ class PacketBase(metaclass=PacketMeta):
         """        
         return json.dumps(self.dump(), **kwargs)
 
-    @abstractmethod
-    def dump_partial(self, field_paths: DiffKeys):
-        pass
-
-    def update_partial(self, field_pairs: dict[str, Any]) -> None:
-        for k, v in field_pairs.items():
-            self[k] = v
-
-    def is_modified(self) -> bool:
-        if self.__modified:
-            return True
-        modified = self.__modified
-        for k in self.__fields__:
-            attr = getattr(self, k)
-            if isinstance(attr, PacketBase):
-                modified = modified or attr.is_modified()
-        return modified
-    
-    def __eq__(self, other: Self) -> bool:
-        if isinstance(other, PacketBase):
-            if self.__class__ != other.__class__:
-                return False
-            if self.fields_names() != other.fields_names():
-                return False
-            for py_name in self.fields_names():
-                if getattr(self, py_name) != getattr(other, py_name):
-                    return False
-            return True
-        return False
-
-    def __ne__(self, other: Self) -> bool:
-        return not self == other
-
-    def __setattr__(self, key: str, value: Any):
-        if key in self.__fields__:
-            self.__modified = True
-        return super().__setattr__(key, value)
-
-    def __delattr__(self, key: str):
-        if key in self.__fields__:
-            setattr(self, key, None)
-        else:
-            super().__delattr__(key)
-
-    def __getsetitem(self, path: List[str]) -> Any:
-        current = self
-        for path_element in path:
-            if isinstance(current, PacketBase):
-                current = getattr(current, current.__raw_mapping__[path_element])
-            elif isinstance(current, (list, tuple)):
-                current = current[int(path_element)]
-            elif isinstance(current, dict):
-                if path_element in current:
-                    current = current[path_element]
-                else:
-                    try:
-                        key = int(path_element)
-                    except ValueError:
-                        current = None
-                    else:
-                        current = current.get(key, {})  # pylint: disable=no-member
-            else:
-                raise RuntimeError(f'Unsupported type {current} ({type(current)})')
-            if current is None:
-                break
-        return current
-
-    def __getitem__(self, key: str) -> Any:
-        path = key.split('.')
-        return self.__getsetitem(path)
-
-    def __setitem__(self, key: str, value: Any):
-        path = key.split('.')
-
-        current = self
-        for path_element in path[:-1]:
-            if isinstance(current, PacketBase):
-                current = getattr(current, path_element)
-            elif isinstance(current, (list, tuple)):
-                current = current[int(path_element)]
-            elif isinstance(current, dict):
-                if path_element in current:
-                    current = current[path_element]
-                else:
-                    try:
-                        int_key = int(path_element)
-                    except ValueError:
-                        current = current.setdefault(path_element, {})  # pylint: disable=no-member
-                    else:
-                        current = current.setdefault(int_key, {})  # pylint: disable=no-member
-            else:
-                raise RuntimeError(f'Unsupported type {current} ({type(current)})')
-
-        tail = path[-1]
-        if isinstance(current, PacketBase):
-            setattr(current, current.__raw_mapping__[tail], value)
-        elif isinstance(current, list):
-            current[int(tail)] = value
-        else:
-            if tail in current:
-                current[tail] = value
-            else:
-                try:
-                    int_key = int(tail)
-                except ValueError:
-                    current[tail] = value
-                else:
-                    current[int_key] = value
-
-    def __delitem__(self, key: str):
-        path = key.split('.')
-        current = self.__getsetitem(path[:-1])
-
-        tail = path[-1]
-        if isinstance(current, PacketBase):
-            if tail in current.__raw_mapping__:
-                delattr(current, current.__raw_mapping__[tail])
-        elif isinstance(current, list):
-            pos = int(tail)
-            if len(current) > pos:
-                del current[int(tail)]
-        else:
-            if tail in current:
-                del current[tail]
-            else:
-                try:
-                    int_key = int(tail)
-                except ValueError:
-                    pass
-                else:
-                    if int_key in current:
-                        del current[int_key]
-
-    def __len__(self) -> int:
-        return len(self.__fields__)
-
-    def __deepdummy__(self, memo: Optional[Dict[int, Any]] = None) -> Self: # type: ignore
-        pass
-
-    def __deepcopy__(self, memo: Optional[Dict[int, Any]] = None) -> Self:
-        if 'dont_cpickle' in self.__tags__:
-            deep_backup, self.__deepcopy__ = self.__deepcopy__, self.__deepdummy__
-            newone = deepcopy(self, memo)
-            self.__deepcopy__ = deep_backup
-            return newone
-        else:
-            return pickle.loads(pickle.dumps(self, protocol=-1))
-
-    def __iter__(self):
-        for field_name in self.__class__.__fields__:
-            yield getattr(self, field_name)
-
     def packet_fields(self):
         for field_name in self.__class__.__fields__:
             yield (field_name, getattr(self, field_name))
 
     def get(self, field_name: str, default=None):
-        if field_name in self.fields_names():
+        if field_name in self.field_names():
             return getattr(self, field_name)
         else:
             return default
-    
-    def clone(self):
-        return self.__deepcopy__(None)
+
+    def clone(self) -> Self:
+        return pickle.loads(pickle.dumps(self, -1))
+
+    def on_packet_loaded(self):
+        """Callback on packet load or update.
+        Need to be implemented in children if needed.
+        """        
+        pass
+
+    @abstractmethod
+    def _parse_raw(self, raw_data, strict=True, update=False):
+        """Parse raw dict data and set it to self
+
+        Args:
+            raw_data (dict, list): raw json data
+            strict (bool, optional): option to ignore required fields. Defaults to True.
+        """
+        pass
+
+    def diff_keys(self) -> DiffKeys:
+        res = {}
+        if self.__modified__:
+            for k, f in self.__fields__.items():
+                v = f.diff_keys(self)
+                if v is None:
+                    continue
+                res[k] = v
+        return res
