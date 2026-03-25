@@ -78,10 +78,11 @@ class Field(Generic[FT]):
                 self._instance_name = f._instance_name
                 self._instance_modified_name = f._instance_modified_name
                 self._required = f._required
+        else:
+            self._instance_name = f'_{name}'
+            self._instance_modified_name = f'_{name}_modified'
         if owner.__no_optionals__ and (not self._required and self._default_value is _not_set):
             raise TypeError(f'Packet "{owner.__name__}" can not have optional field "{self._name}"')
-        self._instance_name = f'_{name}'
-        self._instance_modified_name = f'_{name}_modified'
         owner.__fields__[name] = self
         owner.__local_fields_names__.append(name)
         assert self._name is not None
@@ -111,22 +112,20 @@ class Field(Generic[FT]):
     
     def raw_to_py(self, r, strict = True) -> Optional[FT]:
         if r is None:
-            if self._required and strict:
-                raise ValueError(f'Field "{self._name}" required')
-            if self._default_value is _not_set:
-                v = None
-            else:
+            if self._default_value is not _not_set:
                 v = deepcopy(self._default_value)
+            else:
+                if self._required and strict:
+                    raise ValueError(f'Field "{self._name}" required')
+                else:
+                    v = None
         else:
             if not self._typ.check_raw(r):
                 raise ValueError(f'RAW value {r} is not valid')
             v = self._typ.raw_to_py(r, strict)
-        if v is None:
-            if self._required and strict:
-                raise ValueError(f'Field "{self._name}" required')
-            else:
-                return None
-        return self._typ.raw_to_py(r, strict)
+        if v is None and self._required and strict:
+            raise ValueError(f'Field "{self._name}" required')
+        return v # type: ignore
 
     def py_to_raw(self, v: FT):
         if v is None:
@@ -142,10 +141,6 @@ class Field(Generic[FT]):
         if self._required and r is None:
             raise ValueError(f'Field required "{self._name}"')
         return r
-
-    def update_defaults(self, instance: 'PacketBase'):
-        if self._default_value is not _not_set:
-            setattr(instance, self._instance_name, deepcopy(self._default_value))
 
     def clone(self) -> Self:
         return self.__class__(self._typ, self._name, self._default_value, self._required, self._override)

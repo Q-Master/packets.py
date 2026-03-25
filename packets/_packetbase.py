@@ -35,22 +35,14 @@ class PacketBase(metaclass=PacketMeta):
 
     def __init__(self, __strict__=True, **kwargs) -> None:
         self.__loading__ = True
-        if kwargs:
-            for field_name, field_processor in self.__fields__.items():
-                v = kwargs.get(field_name, None)
-                try:
-                    if v is None:
-                        v = field_processor.raw_to_py(None, __strict__)
-                except Exception as e:
-                    self.__loading__ = False
-                    raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
-                setattr(self, field_name, v)
-        elif __strict__: 
-            for f in self.__fields__.values():
-                if f.required and not f.has_default:
-                    raise ValueError(f'Failed to parse "{self.__class__.__name__}", required fields missing')
-                else:
-                    f.update_defaults(self)
+        for field_name, field_processor in self.__fields__.items():
+            r = kwargs.get(field_name, None)
+            try:
+                v = field_processor.raw_to_py(r, __strict__)
+            except Exception as e:
+                self.__loading__ = False
+                raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
+            setattr(self, field_name, v)
         self.__loading__ = False
         self.__modified__ = False
 
