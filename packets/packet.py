@@ -117,7 +117,9 @@ class TablePacket(Packet, Generic[PT]):
         new_fields = set(raw_data.keys())
         new_ones = new_fields - curr_fields
         namespace: Dict[str, Any] = {k: v for k, v in cls.__dict__.items()}
-        namespace.update({k: cast(Field[PT], cls.__default_field__).clone() for k in new_ones})
+        for k in raw_data.keys():
+            if k in new_ones:
+                namespace[k] = cast(Field[PT], cls.__default_field__).clone()
         partial_class: Type[TablePacket[PT]] = types.new_class(f'PartialTable{cls.__name__}', cls.__bases__, exec_body = lambda ns: ns.clear() or ns.update(namespace))
         pckt = partial_class(__strict__=False)
         pckt.__loading__ = True
