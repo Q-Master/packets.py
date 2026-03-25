@@ -4,4 +4,4 @@ from .uint32_t import uint32_t
 
 
 uint_t = uint32_t
-UIntT: TypeAlias = int
+UintT: TypeAlias = int

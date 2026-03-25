@@ -4,4 +4,4 @@ from ..processors.numeric import Number
 
 
 uint8_t = Number[int](int, 0, 255)
-UInt8T: TypeAlias = int
+Uint8T: TypeAlias = int
