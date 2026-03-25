@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Type, Generic, Self
+from typing import TypeVar, Type, Generic, Self, Any
 from abc import ABCMeta, abstractmethod
 
 
@@ -23,7 +23,7 @@ class TypeDef(Generic[T], metaclass=ABCMeta):
     def raw_to_py(self, r, strict=True) -> T: ...
     
     @abstractmethod
-    def py_to_raw(self, v: T) -> T: ...
+    def py_to_raw(self, v: T) -> Any: ...
     
     def py_to_py(self, v: T) -> T:
         return v
