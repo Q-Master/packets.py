@@ -18,7 +18,7 @@ FT = TypeVar('FT')
 class Field(Generic[FT]):
     def __init__(self, typ: TypeDef[FT], name: Optional[str] = None, default: Union[FT, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False) -> None:
         self._typ = typ.clone()
-        self.name = name
+        self.name: str = name # type: ignore
         self._default_value = default
         self._instance_name = ''
         self._instance_modified_name = ''
