@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Dict, Generic, Self, Optional, Set
+from typing import TypeVar, Dict, Generic, Self, Optional, Set, Union, Any
 from enum import Enum
 from .base import TypeDef
+from .subpacket import Subpacket
 from .._packetbase import PacketBase
 from .._types import DiffKeys
 
@@ -10,7 +11,7 @@ __all__ = ['HashT', 'Hash']
 
 
 _K = TypeVar('_K', int, float, str, Enum)
-_V = TypeVar('_V')
+_V = TypeVar('_V', PacketBase, Any)
 
 
 class HashT(Dict[_K, _V]):
@@ -49,10 +50,14 @@ class HashT(Dict[_K, _V]):
 
 
 class Hash(Generic[_K, _V], TypeDef[HashT[_K, _V]]):
-    def __init__(self, ktyp: TypeDef[_K], vtyp: TypeDef[_V]) -> None:
+    def __init__(self, ktyp: TypeDef[_K], vtyp: Union[TypeDef[_V], _V]) -> None:
         super().__init__()
         self._ktyp = ktyp
-        self._vtyp = vtyp
+        if isinstance(vtyp, TypeDef):
+            assert isinstance(vtyp, TypeDef)
+            self._vtyp = vtyp
+        else:
+            self._vtyp = Subpacket[_V](vtyp) # type: ignore
 
     def check_py(self, v: HashT[_K, _V]) -> bool:
         return isinstance(v, (dict, HashT))

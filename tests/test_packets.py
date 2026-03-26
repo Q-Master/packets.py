@@ -2,7 +2,7 @@
 import unittest
 from typing import Optional
 from packets import Packet, ArrayPacket, Field, TablePacket, makeField
-from packets.processors import Array, Hash
+from packets.processors import Array, Hash, ArrayT, HashT
 from packets.typedef.string_t import string_t
 from packets.typedef.int_t import int_t
 from packets.typedef.unixtime_t import unixtime_t
@@ -128,7 +128,6 @@ class schema_case(unittest.TestCase):
         self.assertIsNot(p1.arr, p2.arr)
 
     def test_4_1_snapshot_deepcopy(self):
-        global TestPacket
         class TestPacket(Packet):
             f1: Optional[int] = makeField(int_t)
             f2: Optional[str] = makeField(string_t)
@@ -147,6 +146,30 @@ class schema_case(unittest.TestCase):
         self.assertEqual(snapshot.f1, 11)
         self.assertEqual(snapshot.f2, 'xxx')
         self.assertEqual(snapshot.f3, [22, 33])
+
+    def test_5_1_array_of_packets(self):
+        class TestSubPacket(Packet):
+            f1: Optional[int] = makeField(int_t)
+            f2: Optional[str] = makeField(string_t)
+
+        class TestPacket(Packet):
+            arr: ArrayT[TestSubPacket] = makeField(Array(TestSubPacket), required=True)
+
+        p = TestPacket(arr=[TestSubPacket(f1=1, f2='1')])
+        p.arr.append(TestSubPacket(f1=2, f2='2'))
+        self.assertEqual(len(p.arr), 2)
+
+    def test_6_1_hash_of_packets(self):
+        class TestSubPacket(Packet):
+            f1: Optional[int] = makeField(int_t)
+            f2: Optional[str] = makeField(string_t)
+
+        class TestPacket(Packet):
+            hash: HashT[int, TestSubPacket] = makeField(Hash(int_t, TestSubPacket), required=True)
+
+        p = TestPacket(hash={1: TestSubPacket(f1=1, f2='1')})
+        p.hash[2] = TestSubPacket(f1=2, f2='2')
+        self.assertEqual(len(p.hash.keys()), 2)
 
     def test_update(self):
         class TestPacket(Packet):

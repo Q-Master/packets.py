@@ -1,13 +1,14 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Optional, Set as TSet, Self
+from typing import TypeVar, Optional, Set as TSet, Self, Union, Any
 from .base import TypeDef
+from .subpacket import Subpacket
 from .._packetbase import PacketBase
 
 
 __all__ = ['SetT', 'Set']
 
 
-_VT=TypeVar('_VT')
+_VT=TypeVar('_VT', PacketBase, Any)
 
 
 class SetT(TSet[_VT]):
@@ -43,10 +44,14 @@ class SetT(TSet[_VT]):
 
 
 class Set(TypeDef[SetT[_VT]]):
-    def __init__(self, typ: TypeDef[_VT]) -> None:
+    def __init__(self, typ: Union[TypeDef[_VT], _VT]) -> None:
         super().__init__()
-        self._typ = typ
-    
+        if isinstance(typ, TypeDef):
+            assert isinstance(typ, TypeDef)
+            self._typ = typ
+        else:
+            self._typ = Subpacket[_VT](typ) # type: ignore
+        
     def check_py(self, v: SetT[_VT]) -> bool:
         return isinstance(v, (set, SetT))
     

@@ -1,13 +1,14 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Optional, List, Iterable, Self, Union
+from typing import TypeVar, Optional, List, Iterable, Self, Union, Any
 from .base import TypeDef
+from .subpacket import Subpacket
 from .._packetbase import PacketBase
 
 
 __all__ = ['Array', 'ArrayT']
 
 
-_VT=TypeVar('_VT')
+_VT=TypeVar('_VT', PacketBase, Any)
 
 
 class ArrayT(List[_VT]):
@@ -56,11 +57,15 @@ class ArrayT(List[_VT]):
 
 
 class Array(TypeDef[ArrayT[_VT]]):
-    def __init__(self, typ: TypeDef[_VT], size: Optional[int] = None) -> None:
+    def __init__(self, typ: Union[TypeDef[_VT], _VT], size: Optional[int] = None) -> None:
         super().__init__()
-        self._typ = typ
+        if isinstance(typ, TypeDef):
+            assert isinstance(typ, TypeDef)
+            self._typ = typ
+        else:
+            self._typ = Subpacket[_VT](typ) # type: ignore
         self._size = size
-    
+        
     def check_py(self, v: Union[ArrayT[_VT], list, tuple]) -> bool:
         return isinstance(v, (list, tuple, ArrayT))
     
