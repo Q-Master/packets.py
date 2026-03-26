@@ -110,6 +110,24 @@ class Field(Generic[FT]):
             return getattr(instance, self._instance_name).is_modified()
         return getattr(instance, self._instance_modified_name, False)
     
+    def py_to_py(self, v: FT, strict=True) -> Optional[FT]:
+        res: Optional[FT]
+        if v is None:
+            if self._default_value is not _not_set:
+                res = deepcopy(self._default_value) # type: ignore
+            else:
+                if self._required and strict:
+                    raise ValueError(f'Field "{self._name}" required')
+                else:
+                    res = None
+        else:
+            if not self._typ.check_py(v):
+                raise ValueError(f'Py value {v} ({type(v)}) is not valid')
+            res = self._typ.py_to_py(v)
+        if res is None and self._required and strict:
+            raise ValueError(f'Field "{self._name}" required')
+        return res
+
     def raw_to_py(self, r, strict = True) -> Optional[FT]:
         if r is None:
             if self._default_value is not _not_set:
@@ -121,7 +139,7 @@ class Field(Generic[FT]):
                     v = None
         else:
             if not self._typ.check_raw(r):
-                raise ValueError(f'RAW value {r} is not valid')
+                raise ValueError(f'RAW value {r} ({type(r)}) is not valid')
             v = self._typ.raw_to_py(r, strict)
         if v is None and self._required and strict:
             raise ValueError(f'Field "{self._name}" required')
@@ -135,7 +153,7 @@ class Field(Generic[FT]):
                 r = self._typ.py_to_raw(self._default_value) # type: ignore
         else:
             if not self._typ.check_py(v):
-                raise ValueError(f'Value {v} is not valid')
+                raise ValueError(f'Value {v} ({type(v)}) is not valid')
             r = self._typ.py_to_raw(v)
         
         if self._required and r is None:

@@ -34,11 +34,21 @@ class PacketBase(metaclass=PacketMeta):
     __parent__: 'Optional[PacketBase]' = None
 
     def __init__(self, __strict__=True, **kwargs) -> None:
+        """Constructor
+        Constructor kwargs must have python values for fields, not raw values.
+        For raw values loading use `load` or `update`.
+
+        Args:
+            __strict__ (bool, optional): true if need checking for required fields. Defaults to True.
+
+        Raises:
+            ValueError: Raised if field setting is impossible by some reason
+        """
         self.__loading__ = True
         for field_name, field_processor in self.__fields__.items():
             r = kwargs.get(field_name, None)
             try:
-                v = field_processor.raw_to_py(r, __strict__)
+                v = field_processor.py_to_py(r, __strict__)
             except Exception as e:
                 self.__loading__ = False
                 raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
