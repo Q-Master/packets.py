@@ -128,6 +128,7 @@ class schema_case(unittest.TestCase):
         self.assertIsNot(p1.arr, p2.arr)
 
     def test_4_1_snapshot_deepcopy(self):
+        global TestPacket
         class TestPacket(Packet):
             f1: Optional[int] = makeField(int_t)
             f2: Optional[str] = makeField(string_t)

@@ -104,7 +104,8 @@ class PacketBase(metaclass=PacketMeta):
     def field_names(cls):
         return cls.__fields__.keys()
         
-    def is_loading(self) -> bool:
+    @property
+    def loading(self) -> bool:
         return self.__loading__
 
     def is_modified(self) -> bool:

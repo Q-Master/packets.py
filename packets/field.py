@@ -19,7 +19,7 @@ FT = TypeVar('FT')
 class Field(Generic[FT]):
     def __init__(self, typ: TypeDef[FT], name: Optional[str] = None, default: Union[FT, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False) -> None:
         self._typ = typ.clone()
-        self._name = name
+        self.name = name
         self._default_value = default
         self._instance_name = ''
         self._instance_modified_name = ''
@@ -29,21 +29,26 @@ class Field(Generic[FT]):
 
     def __set__(self, instance: 'PacketBase', value: FT):
         #print(f'Set {self._name} to {value}')
-        if self._typ.is_const() and not instance.is_loading():
+        if self._typ._ro and not instance.__loading__:
             #print(f'Not setting {instance.__class__.__name__}::{self.name}. CONST')
             return
-        if self._required and value is not None:
-            assert self._typ.check_py(value), f'Value {value} of {type(value)} is not valid'
+        if __debug__:
+            if self._required and value is not None:
+                assert self._typ.check_py(value), f'Value {value} of {type(value)} is not valid'
         value = self._typ.py_to_py(value)
-        setattr(instance, self._instance_name, value)
         has_modified = hasattr(value, 'set_modified')
         if has_modified:
             value.__parent__ = instance # type: ignore
-            if not instance.is_loading():
+            if not instance.__loading__:
                 value.set_modified() # type: ignore
-        if not instance.is_loading():
+        if not instance.__loading__:
+            setattr(instance, self._instance_name, value)
             setattr(instance, self._instance_modified_name, True)
             instance.set_modified()
+        else:
+            if value is not None:
+                setattr(instance, self._instance_name, value)
+
 
     @overload
     def __get__(self, instance: None, owner = None) -> Self:...
@@ -54,9 +59,13 @@ class Field(Generic[FT]):
     def __get__(self, instance: 'Union[PacketBase, None]', owner = None) -> Union[FT, Self, None]:
         if instance is None:
             return self
-        try:
+        if hasattr(instance, self._instance_name):
             return getattr(instance, self._instance_name)
-        except AttributeError:
+        else:
+            if self.has_default:
+                dflt = self.default
+                setattr(instance, self._instance_name, dflt)
+                return dflt
             return None
     
     def __delete__(self, instance: 'PacketBase'):
@@ -67,14 +76,14 @@ class Field(Generic[FT]):
     def __set_name__(self, owner: 'PacketBase', name):
         if name == '__default_field__':
             return
-        if self._name is None:
-            self._name = name
+        if self.name is None:
+            self.name = name
         f = owner.__fields__.get(name, None)
         if f:
             if not self._override:
-                raise TypeError(f'Repeated field "{owner.__name__}::{self._name}"')
+                raise TypeError(f'Repeated field "{owner.__name__}::{self.name}"')
             else:
-                self._name = f._name
+                self.name = f.name
                 self._instance_name = f._instance_name
                 self._instance_modified_name = f._instance_modified_name
                 self._required = f._required
@@ -82,16 +91,12 @@ class Field(Generic[FT]):
             self._instance_name = f'_{name}'
             self._instance_modified_name = f'_{name}_modified'
         if owner.__no_optionals__ and (not self._required and not self.has_default):
-            raise TypeError(f'Packet "{owner.__name__}" can not have optional field "{self._name}"')
+            raise TypeError(f'Packet "{owner.__name__}" can not have optional field "{self.name}"')
         owner.__fields__[name] = self
         owner.__local_fields_names__.append(name)
-        assert self._name is not None
-        owner.__raw_mapping__[self._name] = name
+        assert self.name is not None
+        owner.__raw_mapping__[self.name] = name
         #print(f'SET NAME to {self._name}')
-
-    @property
-    def name(self) -> str:
-        return self._name # type: ignore
 
     @property
     def required(self) -> bool:
@@ -120,36 +125,32 @@ class Field(Generic[FT]):
     def py_to_py(self, v: FT, strict=True) -> Optional[FT]:
         res: Optional[FT]
         if v is None:
-            if self.has_default:
-                res = deepcopy(self._default_value) # type: ignore
+            if self._required and strict and not self.has_default:
+                raise ValueError(f'Field "{self.name}" required')
             else:
-                if self._required and strict:
-                    raise ValueError(f'Field "{self._name}" required')
-                else:
-                    res = None
+                res = None
         else:
-            if not self._typ.check_py(v):
-                raise ValueError(f'Py value {v} ({type(v)}) is not valid')
+            if __debug__:
+                if not self._typ.check_py(v):
+                    raise ValueError(f'Py value {v} ({type(v)}) is not valid')
             res = self._typ.py_to_py(v)
-        if res is None and self._required and strict:
-            raise ValueError(f'Field "{self._name}" required')
+        if res is None and self._required and strict and not self.has_default:
+            raise ValueError(f'Field "{self.name}" required')
         return res
 
     def raw_to_py(self, r, strict = True) -> Optional[FT]:
         if r is None:
-            if self.has_default:
-                v = deepcopy(self._default_value)
+            if self._required and strict:
+                raise ValueError(f'Field "{self.name}" required')
             else:
-                if self._required and strict:
-                    raise ValueError(f'Field "{self._name}" required')
-                else:
-                    v = None
+                v = None
         else:
-            if not self._typ.check_raw(r):
-                raise ValueError(f'RAW value {r} ({type(r)}) is not valid')
+            if __debug__:
+                if not self._typ.check_raw(r):
+                    raise ValueError(f'RAW value {r} ({type(r)}) is not valid')
             v = self._typ.raw_to_py(r, strict)
         if v is None and self._required and strict:
-            raise ValueError(f'Field "{self._name}" required')
+            raise ValueError(f'Field "{self.name}" required')
         return v # type: ignore
 
     def py_to_raw(self, v: FT):
@@ -159,16 +160,17 @@ class Field(Generic[FT]):
             else:
                 r = self._typ.py_to_raw(self._default_value) # type: ignore
         else:
-            if not self._typ.check_py(v):
-                raise ValueError(f'Value {v} ({type(v)}) is not valid')
+            if __debug__:
+                if not self._typ.check_py(v):
+                    raise ValueError(f'Value {v} ({type(v)}) is not valid')
             r = self._typ.py_to_raw(v)
         
         if self._required and r is None:
-            raise ValueError(f'Field required "{self._name}"')
+            raise ValueError(f'Field required "{self.name}"')
         return r
 
     def clone(self) -> Self:
-        return self.__class__(self._typ, self._name, self._default_value, self._required, self._override)
+        return self.__class__(self._typ, self.name, self._default_value, self._required, self._override)
 
     def zero_value(self) -> FT:
         return self._typ.zero_value()

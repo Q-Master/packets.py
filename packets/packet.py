@@ -20,7 +20,7 @@ class Packet(PacketBase):
     def _parse_raw(self, raw_js, strict=True, update=False):
         for field_name, field in self.__fields__.items():
             r = raw_js.get(field.name, None)
-            if r is None and self.update:
+            if r is None and update:
                 continue
             try:
                 v = field.raw_to_py(r, strict=strict)
