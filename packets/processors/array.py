@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Optional, List, Iterable, Self
+from typing import TypeVar, Optional, List, Iterable, Self, Union
 from .base import TypeDef
 from .._packetbase import PacketBase
 
@@ -61,11 +61,11 @@ class Array(TypeDef[ArrayT[_VT]]):
         self._typ = typ
         self._size = size
     
-    def check_py(self, v: ArrayT[_VT]) -> bool:
-        return isinstance(v, (list, ArrayT))
+    def check_py(self, v: Union[ArrayT[_VT], list, tuple]) -> bool:
+        return isinstance(v, (list, tuple, ArrayT))
     
-    def check_raw(self, r) -> bool:
-        return isinstance(r, list)
+    def check_raw(self, r: Union[list, tuple]) -> bool:
+        return isinstance(r, (list, tuple))
     
     def raw_to_py(self, r, strict = True) -> ArrayT[_VT]:
         return ArrayT[_VT]([self._typ.raw_to_py(ri, strict) for ri in r], self._size)
