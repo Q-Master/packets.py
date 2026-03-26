@@ -81,7 +81,7 @@ class Field(Generic[FT]):
         else:
             self._instance_name = f'_{name}'
             self._instance_modified_name = f'_{name}_modified'
-        if owner.__no_optionals__ and (not self._required and self._default_value is _not_set):
+        if owner.__no_optionals__ and (not self._required and not self.has_default):
             raise TypeError(f'Packet "{owner.__name__}" can not have optional field "{self._name}"')
         owner.__fields__[name] = self
         owner.__local_fields_names__.append(name)
@@ -105,6 +105,13 @@ class Field(Generic[FT]):
     def has_default(self) -> bool:
         return self._default_value is not _not_set
 
+    @property 
+    def default(self) -> Optional[FT]:
+        if self.has_default:
+            return deepcopy(self._default_value) # type: ignore
+        else:
+            return None
+
     def is_modified(self, instance: 'PacketBase') -> bool:
         if isinstance(self._typ, (Subpacket, Set, Hash, Array, Object)):
             return getattr(instance, self._instance_name).is_modified()
@@ -113,7 +120,7 @@ class Field(Generic[FT]):
     def py_to_py(self, v: FT, strict=True) -> Optional[FT]:
         res: Optional[FT]
         if v is None:
-            if self._default_value is not _not_set:
+            if self.has_default:
                 res = deepcopy(self._default_value) # type: ignore
             else:
                 if self._required and strict:
@@ -130,7 +137,7 @@ class Field(Generic[FT]):
 
     def raw_to_py(self, r, strict = True) -> Optional[FT]:
         if r is None:
-            if self._default_value is not _not_set:
+            if self.has_default:
                 v = deepcopy(self._default_value)
             else:
                 if self._required and strict:
@@ -147,7 +154,7 @@ class Field(Generic[FT]):
 
     def py_to_raw(self, v: FT):
         if v is None:
-            if self._default_value is _not_set or self._default_value is None:
+            if self.default is None:
                 r = None
             else:
                 r = self._typ.py_to_raw(self._default_value) # type: ignore
