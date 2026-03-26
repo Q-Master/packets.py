@@ -3,8 +3,7 @@ from typing import Generic, TypeVar, TYPE_CHECKING, Union, Optional, Any, overlo
 from copy import deepcopy
 from ._types import DiffKeys
 from .processors.base import TypeDef
-from .processors import Subpacket, Hash, Set, Array
-from .typedef.object_t import Object
+from .processors import Subpacket
 if TYPE_CHECKING:
     from ._packetbase import PacketBase
 
@@ -36,8 +35,7 @@ class Field(Generic[FT]):
             if self._required and value is not None:
                 assert self._typ.check_py(value), f'Value {value} of {type(value)} is not valid'
         value = self._typ.py_to_py(value)
-        has_modified = hasattr(value, 'set_modified')
-        if has_modified:
+        if self._typ.has_modified and value is not None:
             value.__parent__ = instance # type: ignore
             if not instance.__loading__:
                 value.set_modified() # type: ignore
@@ -48,7 +46,6 @@ class Field(Generic[FT]):
         else:
             if value is not None:
                 setattr(instance, self._instance_name, value)
-
 
     @overload
     def __get__(self, instance: None, owner = None) -> Self:...
@@ -118,7 +115,7 @@ class Field(Generic[FT]):
             return None
 
     def is_modified(self, instance: 'PacketBase') -> bool:
-        if isinstance(self._typ, (Subpacket, Set, Hash, Array, Object)):
+        if self._typ.has_modified:
             return getattr(instance, self._instance_name).is_modified()
         return getattr(instance, self._instance_modified_name, False)
     

@@ -46,6 +46,7 @@ class SetT(TSet[_VT]):
 class Set(TypeDef[SetT[_VT]]):
     def __init__(self, typ: Union[TypeDef[_VT], _VT]) -> None:
         super().__init__()
+        self.has_modified = True
         if isinstance(typ, TypeDef):
             assert isinstance(typ, TypeDef)
             self._typ = typ

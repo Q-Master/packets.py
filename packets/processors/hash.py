@@ -52,6 +52,7 @@ class HashT(Dict[_K, _V]):
 class Hash(Generic[_K, _V], TypeDef[HashT[_K, _V]]):
     def __init__(self, ktyp: TypeDef[_K], vtyp: Union[TypeDef[_V], _V]) -> None:
         super().__init__()
+        self.has_modified = True
         self._ktyp = ktyp
         if isinstance(vtyp, TypeDef):
             assert isinstance(vtyp, TypeDef)

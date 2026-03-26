@@ -14,6 +14,7 @@ PT = TypeVar('PT', bound='PacketBase', infer_variance=True)
 class Subpacket(TypeDef[PT]):
     def __init__(self, typ: Type[PT]) -> None:
         super().__init__()
+        self.has_modified = True
         self._typ = typ
     
     def check_py(self, v: PT) -> bool:

@@ -59,6 +59,7 @@ class ArrayT(List[_VT]):
 class Array(TypeDef[ArrayT[_VT]]):
     def __init__(self, typ: Union[TypeDef[_VT], _VT], size: Optional[int] = None) -> None:
         super().__init__()
+        self.has_modified = True
         if isinstance(typ, TypeDef):
             assert isinstance(typ, TypeDef)
             self._typ = typ

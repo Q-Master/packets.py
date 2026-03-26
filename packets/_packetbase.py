@@ -44,6 +44,7 @@ class PacketBase(metaclass=PacketMeta):
         Raises:
             ValueError: Raised if field setting is impossible by some reason
         """
+        self.has_modified = True
         self.__loading__ = True
         for field_name, field_processor in self.__fields__.items():
             r = kwargs.get(field_name, None)

@@ -42,6 +42,10 @@ class ObjectT(dict):
 
 class Object(TypeDef[dict]):
     """Simple python object processor"""
+    def __init__(self) -> None:
+        super().__init__()
+        self.has_modified = True
+    
     def check_py(self, v: dict) -> bool:
         return isinstance(v, dict)    
 

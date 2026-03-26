@@ -10,13 +10,11 @@ T=TypeVar('T', bound=Union[int, float])
 
 
 class Number(TypeDef[T]):
-    _ro = False
-
     def __init__(self, typ: type[T], min: Optional[T] = None, max: Optional[T] = None) -> None:
+        super().__init__()
         self._typ = typ
         self._min = min
         self._max = max
-        self._ro = False
     
     def check_py(self, v: T) -> bool:
         if not isinstance(v, (int, float)):
