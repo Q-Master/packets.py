@@ -131,6 +131,18 @@ class TablePacket(Packet, Generic[PT]):
         return cast(Self, pckt)
 
 
+    def __reduce__(self) -> tuple[Any, ...]:
+        ns = {k: v for k, v in self.__class__.__dict__.items() if isinstance(v, Field)}
+        ns.update({
+            '__fields__': self.__class__.__dict__['__fields__'],
+            '__raw_mapping__': self.__class__.__dict__['__raw_mapping__']
+        })
+        return (
+            create_table_packet_class,
+            (self.__class__.__name__, self.__class__.__bases__, ns),
+            self.__dict__
+        )
+
     if TYPE_CHECKING:
         def __getattr__(self, name: str) -> PT:
             cls = super().__getattribute__('__class__')
@@ -139,3 +151,9 @@ class TablePacket(Packet, Generic[PT]):
                 assert df is not None
                 return df
             raise AttributeError()
+
+
+def create_table_packet_class(name, bases, namespace) -> TablePacket:
+    partial_class = types.new_class(f'Partial{name}', bases, exec_body = lambda ns: ns.update(namespace))
+    pckt = partial_class(__strict__=False)
+    return pckt
