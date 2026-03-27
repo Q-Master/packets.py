@@ -87,6 +87,9 @@ class PacketBase(metaclass=PacketMeta):
         self.__dict__.update(state) # type: ignore
         self.__modified__ = False
 
+    def __getstate__(self) -> object:
+        return self.__dict__.copy()
+
     def __iter__(self):
         for field_name in self.__class__.__fields__:
             yield getattr(self, field_name)
