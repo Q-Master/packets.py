@@ -14,8 +14,8 @@ class PacketMeta(ABCMeta):
         rm = {}
         for base in bases:
             if hasattr(base, '__fields__'):
-                fields = base.__fields__.copy()
-                rm = base.__raw_mapping__.copy()
+                fields.update(base.__fields__)
+                rm.update(base.__raw_mapping__)
         namespace['__fields__'] = fields
         namespace['__raw_mapping__'] = rm
         return super().__new__(cls, cls_name, bases, namespace)

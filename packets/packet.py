@@ -135,6 +135,7 @@ class TablePacket(Packet, Generic[PT]):
         ns = {k: v for k, v in self.__class__.__dict__.items() if isinstance(v, Field)}
         ns.update({
             '__fields__': self.__class__.__dict__['__fields__'],
+            '__local_fields_names__': self.__class__.__dict__['__local_fields_names__'],
             '__raw_mapping__': self.__class__.__dict__['__raw_mapping__']
         })
         return (
