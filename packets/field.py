@@ -19,7 +19,13 @@ class Field(Generic[FT]):
     def __init__(self, typ: TypeDef[FT], name: Optional[str] = None, default: Union[FT, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False) -> None:
         self._typ = typ.clone()
         self.name: str = name # type: ignore
-        self._default_value = default
+        #default value is ALWAYS raw value, so need to convert to Python value
+        if default is _not_set or default is None:
+            self._default_value = default 
+        else:
+            if not self._typ.check_raw(default):
+                raise ValueError(f'RAW default {default} ({type(default)}) is not valid')
+            self._default_value = self._typ.raw_to_py(default, strict=False)
         self._instance_name = ''
         self._instance_modified_name = ''
         self._required = required
