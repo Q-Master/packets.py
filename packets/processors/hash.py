@@ -10,7 +10,7 @@ from .._types import DiffKeys
 __all__ = ['HashT', 'Hash']
 
 
-_K = TypeVar('_K', int, float, str, Enum)
+_K = TypeVar('_K', bound=Union[int, float, str, Enum])
 _V = TypeVar('_V')
 
 
