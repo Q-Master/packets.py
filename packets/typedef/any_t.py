@@ -25,4 +25,4 @@ class AnyD(TypeDef[object]):
 
 
 any_t = AnyD()
-AnyT: TypeAlias = object
+AnyT: TypeAlias = Any
