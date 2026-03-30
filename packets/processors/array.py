@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Optional, List, Iterable, Self, Union, Any
+from typing import TypeVar, Optional, List, Iterable, Self, Union, Type
 from .base import TypeDef
 from .subpacket import Subpacket
 from .._packetbase import PacketBase
@@ -8,7 +8,7 @@ from .._packetbase import PacketBase
 __all__ = ['Array', 'ArrayT']
 
 
-_VT=TypeVar('_VT', PacketBase, Any)
+_VT=TypeVar('_VT')
 
 
 class ArrayT(List[_VT]):
@@ -57,7 +57,7 @@ class ArrayT(List[_VT]):
 
 
 class Array(TypeDef[ArrayT[_VT]]):
-    def __init__(self, typ: Union[TypeDef[_VT], _VT], size: Optional[int] = None) -> None:
+    def __init__(self, typ: Union[TypeDef[_VT], Type[_VT]], size: Optional[int] = None) -> None:
         super().__init__()
         self.has_modified = True
         if isinstance(typ, TypeDef):

@@ -99,6 +99,7 @@ class Field(Generic[FT]):
         owner.__local_fields_names__.append(name)
         assert self.name is not None
         owner.__raw_mapping__[self.name] = name
+        owner.__annotations__[self.name] = self._typ.self_type()
         #print(f'SET NAME to {self._name}')
 
     @property

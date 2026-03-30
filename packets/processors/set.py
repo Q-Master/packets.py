@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Optional, Set as TSet, Self, Union, Any
+from typing import TypeVar, Optional, Set as TSet, Self, Union, Type
 from .base import TypeDef
 from .subpacket import Subpacket
 from .._packetbase import PacketBase
@@ -8,7 +8,7 @@ from .._packetbase import PacketBase
 __all__ = ['SetT', 'Set']
 
 
-_VT=TypeVar('_VT', PacketBase, Any)
+_VT=TypeVar('_VT')
 
 
 class SetT(TSet[_VT]):
@@ -44,7 +44,7 @@ class SetT(TSet[_VT]):
 
 
 class Set(TypeDef[SetT[_VT]]):
-    def __init__(self, typ: Union[TypeDef[_VT], _VT]) -> None:
+    def __init__(self, typ: Union[TypeDef[_VT], Type[_VT]]) -> None:
         super().__init__()
         self.has_modified = True
         if isinstance(typ, TypeDef):

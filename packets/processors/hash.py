@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Dict, Generic, Self, Optional, Set, Union, Any
+from typing import TypeVar, Dict, Generic, Self, Optional, Set, Union, Type
 from enum import Enum
 from .base import TypeDef
 from .subpacket import Subpacket
@@ -11,7 +11,7 @@ __all__ = ['HashT', 'Hash']
 
 
 _K = TypeVar('_K', int, float, str, Enum)
-_V = TypeVar('_V', PacketBase, Any)
+_V = TypeVar('_V')
 
 
 class HashT(Dict[_K, _V]):
@@ -49,8 +49,8 @@ class HashT(Dict[_K, _V]):
             self.__parent__.set_modified()
 
 
-class Hash(Generic[_K, _V], TypeDef[HashT[_K, _V]]):
-    def __init__(self, ktyp: TypeDef[_K], vtyp: Union[TypeDef[_V], _V]) -> None:
+class Hash(TypeDef[HashT[_K, _V]]):
+    def __init__(self, ktyp: TypeDef[_K], vtyp: Union[TypeDef[_V], Type[_V]]) -> None:
         super().__init__()
         self.has_modified = True
         self._ktyp = ktyp
