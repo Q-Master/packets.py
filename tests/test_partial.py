@@ -1,8 +1,11 @@
 from typing import Optional, List
 import unittest
-from copy import deepcopy
+import pickle
 from packets import Packet, makeField
-from packets.processors import int_t, string_t, float_t, Array
+from packets.typedef.int_t import int_t
+from packets.typedef.string_t import string_t
+from packets.typedef.float_t import float_t
+from packets.processors import Array
 
 
 class Internal(Packet):
@@ -36,14 +39,16 @@ class TestPacketDiff(unittest.TestCase):
         if pkt.is_modified():
             partial_pkt = pkt.dump_partial({'b': '1', 'c': {'d': '1', 'e': '1', 'f': '1'}})
             self.assertDictEqual(partial_pkt, {'c': {'d': 8, 'e': 'test2', 'f': ['1', '2', '6']}, 'non_B': 3.0})
+class FrontPartial(Front.with_fields(
+    'a', 'non_B'
+)):
+    pass
 
 class TestWithFields(unittest.TestCase):
     def test_with_fields(self):
         with self.assertRaises(TypeError):
             class InternalPartialFail(Internal.with_fields('x', 'f')):
                 pass
-        self.assertNotIn('e', InternalPartial.fields_names())
-        class FrontPartial(Front.with_fields(
-            'a', 'non_B'
-        )):
-            pass
+        self.assertNotIn('e', InternalPartial.field_names())
+
+        pickle.dumps(FrontPartial, -1)

@@ -1,11 +1,24 @@
 # -*- coding: utf8 -*-
 import unittest
+import pickle
 from typing import Optional
 from packets import Packet, ArrayPacket, Field, TablePacket, makeField
 from packets.processors import Array, Hash, ArrayT, HashT
 from packets.typedef.string_t import string_t
 from packets.typedef.int_t import int_t
 from packets.typedef.unixtime_t import unixtime_t
+
+
+class TableField(Packet):
+    f1: Optional[int] = makeField(int_t)
+    f2: Optional[str] = makeField(string_t)
+
+class Default(TablePacket[TableField]):
+    __default_field__ = makeField(TableField, required=True)
+
+class Default1(TablePacket[TableField]):
+    __default_field__ = makeField(TableField, required=True)
+    additional = makeField(int_t, default=3)
 
 
 class schema_case(unittest.TestCase):
@@ -320,16 +333,6 @@ class schema_case(unittest.TestCase):
             'additional': 8
         }
 
-        class TableField(Packet):
-            f1: Optional[int] = makeField(int_t)
-            f2: Optional[str] = makeField(string_t)
-        
-        class Default(TablePacket[TableField]):
-            __default_field__ = makeField(TableField, required=True)
-
-        class Default1(TablePacket[TableField]):
-            __default_field__ = makeField(TableField, required=True)
-            additional = makeField(int_t, default=3)
             
         
         packet = Default.load(t)
@@ -342,6 +345,10 @@ class schema_case(unittest.TestCase):
         self.assertEqual(packet1.b.f1, 2)
         self.assertEqual(packet1.c.f1, 3)
         self.assertEqual(packet1.additional, 8)
+        try:
+            pickle.dumps(packet, -1)
+        except pickle.PicklingError as e:
+            self.assertTrue(False, f'Pickling Error {e}')
 
 
     def test_modified(self):

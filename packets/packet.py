@@ -49,6 +49,19 @@ class Packet(PacketBase):
                     result[field.name] = getattr(self, fn).dump_partial(subpaths)
         return result
 
+    def __reduce_for_fields__(self) -> tuple[Any, ...]:
+        ns = {k: v for k, v in self.__class__.__dict__.items() if isinstance(v, Field)}
+        ns.update({
+            '__fields__': self.__class__.__dict__['__fields__'],
+            '__local_fields_names__': self.__class__.__dict__.get('__local_fields_names__', []),
+            '__raw_mapping__': self.__class__.__dict__['__raw_mapping__']
+        })
+        return (
+            create_packet_class,
+            (self.__class__.__name__, self.__class__.__bases__, ns),
+            self.__dict__
+        )
+
     @classmethod
     def with_fields(cls, *field_names: str) -> Type[Self]:
         fields_set = set(field_names) # raw names!!!
@@ -58,7 +71,9 @@ class Packet(PacketBase):
         normal_naming = {raw_name: cls.__raw_mapping__[raw_name] for raw_name in fields_set }
         namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone() for field_name in normal_naming.values()}
         partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', (Packet, ), exec_body=lambda ns: ns.update(namespace))
+        setattr(partial_class, '__reduce__', cls.__reduce_for_fields__)
         return partial_class
+
 
 
 class ArrayPacket(PacketBase):
@@ -130,19 +145,7 @@ class TablePacket(Packet, Generic[PT]):
         pckt.on_packet_loaded()
         return cast(Self, pckt)
 
-
-    def __reduce__(self) -> tuple[Any, ...]:
-        ns = {k: v for k, v in self.__class__.__dict__.items() if isinstance(v, Field)}
-        ns.update({
-            '__fields__': self.__class__.__dict__['__fields__'],
-            '__local_fields_names__': self.__class__.__dict__['__local_fields_names__'],
-            '__raw_mapping__': self.__class__.__dict__['__raw_mapping__']
-        })
-        return (
-            create_table_packet_class,
-            (self.__class__.__name__, self.__class__.__bases__, ns),
-            self.__dict__
-        )
+    __reduce__ = Packet.__reduce_for_fields__
 
     if TYPE_CHECKING:
         def __getattr__(self, name: str) -> PT:
@@ -154,7 +157,7 @@ class TablePacket(Packet, Generic[PT]):
             raise AttributeError()
 
 
-def create_table_packet_class(name, bases, namespace) -> TablePacket:
+def create_packet_class(name, bases, namespace) -> PacketBase:
     partial_class = types.new_class(f'Partial{name}', bases, exec_body = lambda ns: ns.update(namespace))
     pckt = partial_class(__strict__=False)
     return pckt
