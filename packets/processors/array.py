@@ -55,6 +55,10 @@ class ArrayT(List[_VT]):
         if self.__parent__:
             self.__parent__.set_modified()
 
+    @property
+    def size(self) -> Optional[int]:
+        return self._size
+
 
 class Array(TypeDef[ArrayT[_VT]]):
     def __init__(self, typ: Union[TypeDef[_VT], Type[_VT]], size: Optional[int] = None) -> None:
@@ -101,3 +105,7 @@ class Array(TypeDef[ArrayT[_VT]]):
         c = self.__class__(self._typ.clone(), self._size)
         c.set_ro(False)
         return c
+
+    @property
+    def size(self) -> Optional[int]:
+        return self._size
