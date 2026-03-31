@@ -1,11 +1,15 @@
 # -*- coding:utf-8 -*-
-from typing import Type, Optional
+from typing import Type, Optional, TypeVar, Dict
 from ..processors.base import TypeDef
 from .._packetbase import PacketBase
 from .._types import DiffKeys
 
 
-class ObjectT(dict):
+_K = TypeVar('_K')
+_V = TypeVar('_V')
+
+
+class ObjectT(Dict[_K, _V]):
     _ro = False
     __parent__: Optional[PacketBase] = None
     __modified__: bool = False
@@ -40,7 +44,7 @@ class ObjectT(dict):
             self.__parent__.set_modified()
 
 
-class Object(TypeDef[dict]):
+class Object(TypeDef[Dict[_K, _V]]):
     """Simple python object processor"""
     def __init__(self) -> None:
         super().__init__()
@@ -68,7 +72,7 @@ class Object(TypeDef[dict]):
         return {}
 
     def self_type(self) -> Type[ObjectT]:
-        return ObjectT
+        return ObjectT[_K, _V]
 
     def diff_keys(self, data: ObjectT) -> DiffKeys:
         res = {}
