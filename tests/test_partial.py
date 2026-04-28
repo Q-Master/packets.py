@@ -10,7 +10,7 @@ from packets.processors import Array
 
 class Internal(Packet):
     d: Optional[int] = makeField(int_t)
-    e: str = makeField(string_t, required=True)
+    e: str = makeField(string_t, '_e', required=True)
     f: List[str] = makeField(Array(string_t), default=[])
 
 
@@ -37,8 +37,8 @@ class TestPacketDiff(unittest.TestCase):
         pkt.c.d = 8
         pkt.c.f = ['1', '2', '6']
         if pkt.is_modified():
-            partial_pkt = pkt.dump_partial({'b': '1', 'c': {'d': '1', 'e': '1', 'f': '1'}})
-            self.assertDictEqual(partial_pkt, {'c': {'d': 8, 'e': 'test2', 'f': ['1', '2', '6']}, 'non_B': 3.0})
+            partial_pkt = pkt.dump_partial({'non_B': '1', 'c': {'d': '1', '_e': '1', 'f': '1'}})
+            self.assertDictEqual(partial_pkt, {'c': {'d': 8, '_e': 'test2', 'f': ['1', '2', '6']}, 'non_B': 3.0})
 class FrontPartial(Front.with_fields(
     'a', 'non_B'
 )):

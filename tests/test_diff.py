@@ -9,12 +9,12 @@ from packets.typedef.float_t import float_t
 
 class Internal(Packet):
     d: Optional[int] = makeField(int_t)
-    e: str = makeField(string_t, required=True)
+    e: str = makeField(string_t, '_e', required=True)
     f: List[str] = makeField(Array(string_t), default=[])
 
 
 class Front(Packet):
-    a: int = makeField(int_t, default=10)
+    a: int = makeField(int_t, '_a', default=10)
     b: Optional[float] = makeField(float_t)
     c: Internal = makeField(Internal, required=True)
 
@@ -39,4 +39,4 @@ class TestPacketDiff(unittest.TestCase):
         if pkt.is_modified():
             keys_diff = pkt.diff_keys()
             self.assertIsInstance(keys_diff, dict)
-            self.assertDictEqual(keys_diff, {'a': '1', 'c': {'d': '1', 'e': '1', 'f': '1'}})
+            self.assertDictEqual(keys_diff, {'_a': '1', 'c': {'_e': '1', 'd': '1', 'f': '1'}})

@@ -227,9 +227,9 @@ class PacketBase(metaclass=PacketMeta):
     def diff_keys(self) -> DiffKeys:
         res = {}
         if self.__modified__:
-            for k, f in self.__fields__.items():
+            for f in self.__fields__.values():
                 v = f.diff_keys(self)
                 if v is None:
                     continue
-                res[k] = v
+                res[f.name] = v
         return res
