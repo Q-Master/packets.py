@@ -3,14 +3,14 @@ from typing import cast, Any
 from .field import Field
 
 
-__all__ = ['field_name']
+__all__ = ['field_name', 'as_field']
 
 
 def field_name(f: Any) -> str:
     """Just a sugar to get name from a field.
 
     This code is blindly force any object to `Field` and tries to get it's name,
-    so it may fail at any time if f is not `Field` instance.
+    so it may fail at any time if `f` is not `Field` instance.
 
     Args:
         f (Any): Must be a `Field` instance !
@@ -18,4 +18,19 @@ def field_name(f: Any) -> str:
     Returns:
         str: the raw name of a field
     """
-    return cast(Field, f).name
+    return as_field(f).name
+
+
+def as_field(f: Any) -> Field:
+    """Just a sugar to cast packet field to Field
+
+    This code is blindly force any object to `Field`, so
+    the resulting call may fail if `f` is not a `Field` instance
+
+    Args:
+        f (Any): Must be a `Field` instance !
+
+    Returns:
+        Field: `f` converted to `Field`
+    """
+    return cast(Field, f)
