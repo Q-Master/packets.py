@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import unittest
-from typing import cast
-from packets.field import makeField, Field
+from packets._util import field_name
+from packets.field import makeField
 from packets.packet import Packet, TablePacket
 from packets.typedef.int32_t import int32_t
 from packets.typedef.string_t import string_t
@@ -21,7 +21,7 @@ class FieldDescriptor(unittest.TestCase):
         a2.field_1 = 10
         self.assertEqual(a1.field_1, 9)
         self.assertEqual(a2.field_1, 10)
-        print(cast(Field, TestPacket1.field_1).name)
+        print(field_name(TestPacket1.field_1))
         self.assertEqual(vars(TestPacket2)['field_1'].name, 'f2')
 
     def test_field_descriptor_inheritance(self):
