@@ -107,7 +107,11 @@ class PacketBase(metaclass=PacketMeta):
     @classmethod
     def field_names(cls):
         return cls.__fields__.keys()
-        
+    
+    @classmethod
+    def field_raw_names(cls):
+        return cls.__raw_mapping__.keys()
+    
     @property
     def loading(self) -> bool:
         return self.__loading__

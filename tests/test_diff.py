@@ -1,6 +1,5 @@
 from typing import Optional, List
 import unittest
-from copy import deepcopy
 from packets import Packet, makeField
 from packets.processors import Array
 from packets.typedef.int_t import int_t
