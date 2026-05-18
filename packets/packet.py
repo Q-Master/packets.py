@@ -39,7 +39,7 @@ class Packet(PacketBase):
     def dump_partial(self, field_paths: DiffKeys) -> Dict[str, Any]:
         result = {}
         for raw_fn, subpaths in field_paths.items():
-            fn = self.__raw_mapping__[raw_fn]
+            fn = self.__class__.__raw_mapping__[raw_fn]
             field = self.__fields__.get(fn, None)
             if field:
                 if isinstance(subpaths, str):
