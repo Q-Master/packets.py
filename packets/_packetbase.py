@@ -233,3 +233,6 @@ class PacketBase(metaclass=PacketMeta):
                     continue
                 res[f.name] = v
         return res
+
+    def toDict(self) -> Union[dict, list, type[None]]:
+        return self.dump()
