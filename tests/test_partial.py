@@ -19,6 +19,8 @@ class Front(Packet):
     b: Optional[float] = makeField(float_t, 'non_B')
     c: Internal = makeField(Internal, required=True)
 
+    def test_call(self) -> bool:
+            return True
 
 class InternalPartial(Internal.with_fields('d', 'f')):
     pass
@@ -39,6 +41,8 @@ class TestPacketDiff(unittest.TestCase):
         if pkt.is_modified():
             partial_pkt = pkt.dump_partial({'non_B': '1', 'c': {'d': '1', '_e': '1', 'f': '1'}})
             self.assertDictEqual(partial_pkt, {'c': {'d': 8, '_e': 'test2', 'f': ['1', '2', '6']}, 'non_B': 3.0})
+
+
 class FrontPartial(Front.with_fields(
     'a', 'non_B'
 )):
@@ -51,4 +55,14 @@ class TestWithFields(unittest.TestCase):
                 pass
         self.assertNotIn('e', InternalPartial.field_names())
 
-        pickle.dumps(FrontPartial, -1)
+    def test_pickling(self):
+        fp_pickled_class = pickle.loads(pickle.dumps(FrontPartial, -1))
+        self.assertNotHasAttr(fp_pickled_class, 'test_call')
+        fp = Front(c = Internal(e='1'))
+        self.assertHasAttr(fp, 'test_call')
+        self.assertEqual(True, fp.test_call())
+        fp_pickled = pickle.loads(pickle.dumps(fp, -1))
+        self.assertHasAttr(fp_pickled, 'test_call')
+        fp_pickled_pickled = pickle.loads(pickle.dumps(fp_pickled, -1))
+        self.assertHasAttr(fp_pickled_pickled, 'test_call')
+        self.assertEqual(fp_pickled_pickled.test_call(), True)

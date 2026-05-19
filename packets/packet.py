@@ -71,7 +71,7 @@ class Packet(PacketBase):
             raise TypeError(f'Failed to prepare packet. Unknown fields: {fields_set-(fields_set&cls_fields_set)}')
         normal_naming = {raw_name: cls.__raw_mapping__[raw_name] for raw_name in fields_set }
         namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone() for field_name in normal_naming.values()}
-        partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', (Packet, ), exec_body=lambda ns: ns.update(namespace))
+        partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', cls.__bases__, exec_body=lambda ns: ns.update(namespace))
         setattr(partial_class, '__reduce__', cls.__reduce_for_fields__)
         return partial_class
 
@@ -136,7 +136,7 @@ class TablePacket(Packet, Generic[PT]):
         for k in raw_data.keys():
             if k in new_ones:
                 namespace[k] = cast(Field[PT], cls.__default_field__).clone()
-        partial_class: Type[TablePacket[PT]] = types.new_class(f'PartialTable{cls.__name__}', cls.__bases__, exec_body = lambda ns: ns.clear() or ns.update(namespace))
+        partial_class: Type[TablePacket[PT]] = types.new_class(f'PartialTable{cls.__name__}', cls.__bases__, exec_body = lambda ns: ns.update(namespace))
         pckt = partial_class(__strict__=False)
         pckt.__loading__ = True
         try:
