@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from typing import Type, Self, Dict, Any, Generic, TYPE_CHECKING, cast, List
-import types
+import types, sys
 from ._packetbase import PacketBase, DiffKeys
 from .field import Field
 from .processors.subpacket import PT
@@ -50,19 +50,6 @@ class Packet(PacketBase):
                     result[field.name] = getattr(self, fn).dump_partial(subpaths)
         return result
 
-    def __reduce_for_fields__(self) -> tuple[Any, ...]:
-        ns = {k: v for k, v in self.__class__.__dict__.items() if isinstance(v, Field)}
-        ns.update({
-            '__fields__': self.__class__.__dict__['__fields__'],
-            '__local_fields_names__': self.__class__.__dict__.get('__local_fields_names__', []),
-            '__raw_mapping__': self.__class__.__dict__['__raw_mapping__']
-        })
-        return (
-            create_packet_class,
-            (self.__class__.__name__, self.__class__.__bases__, ns),
-            self.__dict__
-        )
-
     @classmethod
     def with_fields(cls, *field_names: str) -> Type[Self]:
         fields_set = set(field_names) # raw names!!!
@@ -72,7 +59,9 @@ class Packet(PacketBase):
         normal_naming = {raw_name: cls.__raw_mapping__[raw_name] for raw_name in fields_set }
         namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone() for field_name in normal_naming.values()}
         partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', cls.__bases__, exec_body=lambda ns: ns.update(namespace))
-        setattr(partial_class, '__reduce__', cls.__reduce_for_fields__)
+        setattr(sys.modules[cls.__module__], f'_{cls.__name__}', partial_class)
+        partial_class.__module__ = cls.__module__
+        partial_class.__qualname__ = f'_{cls.__name__}'
         return partial_class
 
 
@@ -132,11 +121,15 @@ class TablePacket(Packet, Generic[PT]):
         curr_fields.update(cls.__raw_mapping__.keys())
         new_fields = set(raw_data.keys())
         new_ones = new_fields - curr_fields
-        namespace: Dict[str, Any] = {k: v for k, v in cls.__dict__.items()}
+        namespace: Dict[str, Any] = {}
         for k in raw_data.keys():
             if k in new_ones:
                 namespace[k] = cast(Field[PT], cls.__default_field__).clone()
-        partial_class: Type[TablePacket[PT]] = types.new_class(f'PartialTable{cls.__name__}', cls.__bases__, exec_body = lambda ns: ns.update(namespace))
+        partial_class: Type[TablePacket[PT]] = types.new_class(f'_{cls.__name__}', (cls,), exec_body = lambda ns: ns.update(namespace))
+        setattr(sys.modules[cls.__module__], f'_{cls.__name__}', partial_class)
+        partial_class.__module__ = cls.__module__
+        partial_class.__qualname__ = f'_{cls.__name__}'
+
         pckt = partial_class(__strict__=False)
         pckt.__loading__ = True
         try:
@@ -146,8 +139,6 @@ class TablePacket(Packet, Generic[PT]):
         pckt.on_packet_loaded()
         return cast(Self, pckt)
 
-    __reduce__ = Packet.__reduce_for_fields__
-
     if TYPE_CHECKING:
         def __getattr__(self, name: str) -> PT:
             cls = super().__getattribute__('__class__')
@@ -156,9 +147,3 @@ class TablePacket(Packet, Generic[PT]):
                 assert df is not None
                 return df
             raise AttributeError()
-
-
-def create_packet_class(name, bases, namespace) -> PacketBase:
-    partial_class = types.new_class(f'Partial{name}', bases, exec_body = lambda ns: ns.update(namespace))
-    pckt = partial_class(__strict__=False)
-    return pckt

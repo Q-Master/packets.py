@@ -123,7 +123,10 @@ class Field(Generic[FT]):
 
     def is_modified(self, instance: 'PacketBase') -> bool:
         if self._typ.has_modified:
-            return getattr(instance, self._instance_name).is_modified()
+            if hasattr(instance, self._instance_name):
+                return getattr(instance, self._instance_name).is_modified()
+            else:
+                return False
         return getattr(instance, self._instance_modified_name, False)
     
     def py_to_py(self, v: FT, strict=True) -> Optional[FT]:
