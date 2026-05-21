@@ -44,5 +44,5 @@ class Subpacket(TypeDef[PT]):
         c.set_ro(False)
         return c
 
-    def diff_keys(self, data: PT) -> DiffKeys:
-        return data.diff_keys()
+    def diff_keys(self, v: PT) -> DiffKeys:
+        return v.diff_keys()

@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from typing import TypeVar, Type, Generic, Self, Any
 from abc import ABCMeta, abstractmethod
+from .._types import DiffKeys
 
 
 __all__ = ['TypeDef']
@@ -46,5 +47,8 @@ class TypeDef(Generic[T], metaclass=ABCMeta):
     @abstractmethod
     def self_type(self) -> Type[T]: ...
 
-    def diff_keys(self, data: T) -> str:
+    def diff_keys(self, v: T) -> str:
         return '1'
+
+    def dump_partial(self, diff_keys: DiffKeys, v: T):
+        raise NotImplementedError(f'Not implemented in base')

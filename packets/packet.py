@@ -2,6 +2,7 @@
 from typing import Type, Self, Dict, Any, Generic, TYPE_CHECKING, cast, List
 import types, sys
 from ._packetbase import PacketBase, DiffKeys
+from ._util import as_field
 from .field import Field
 from .processors.subpacket import PT
 
@@ -47,7 +48,11 @@ class Packet(PacketBase):
                     if raw_value is not None:
                         result[field.name] = raw_value
                 else:
-                    result[field.name] = getattr(self, fn).dump_partial(subpaths)
+                    v = getattr(self, fn)
+                    if isinstance(v, PacketBase):
+                        result[field.name] = v.dump_partial(subpaths)
+                    else:
+                        result[field.name] = field.dump_partial(subpaths, v)
         return result
 
     @classmethod

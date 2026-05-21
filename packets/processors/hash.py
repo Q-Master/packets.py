@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Dict, Generic, Self, Optional, Set, Union, Type
+from typing import TypeVar, Dict, Self, Optional, Set, Union, Type
 from enum import Enum
 from .base import TypeDef
 from .subpacket import Subpacket
@@ -47,7 +47,7 @@ class HashT(Dict[_K, _V]):
         self.__modified__ = True
         if self.__parent__:
             self.__parent__.set_modified()
-
+    
 
 class Hash(TypeDef[HashT[_K, _V]]):
     def __init__(self, ktyp: TypeDef[_K], vtyp: Union[TypeDef[_V], Type[_V]]) -> None:
@@ -94,8 +94,27 @@ class Hash(TypeDef[HashT[_K, _V]]):
         c.set_ro(False)
         return c
 
-    def diff_keys(self, data: HashT[_K, _V]) -> DiffKeys:
+    def diff_keys(self, v: HashT[_K, _V]) -> DiffKeys:
         res = {}
-        for k in data.__diff__:
-            res[k] = self._vtyp.diff_keys(data[k])
+        for k in v.__diff__:
+            res[k] = self._vtyp.diff_keys(v[k])
         return res
+
+    def dump_partial(self, field_paths: DiffKeys, v: HashT[_K, _V]):
+        result = {}
+        if len(v):
+            for key, subpaths in field_paths.items():
+                k = self._ktyp.raw_to_py(key)
+                if k in v.keys():
+                    val = v[k]
+                    if isinstance(subpaths, str):
+                        raw_value = self._vtyp.py_to_raw(val)
+                        if raw_value is not None:
+                            result[key] = raw_value
+                    else:
+                        if isinstance(val, PacketBase):
+                            result[key] = val.dump_partial(subpaths)
+                        else:
+                            result[key] = self._vtyp.dump_partial(subpaths, val)
+        return result
+

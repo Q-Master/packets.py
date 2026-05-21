@@ -74,12 +74,12 @@ class Object(TypeDef[Dict[_K, _V]]):
     def self_type(self) -> Type[ObjectT]:
         return ObjectT[_K, _V]
 
-    def diff_keys(self, data: ObjectT) -> DiffKeys:
+    def diff_keys(self, v: ObjectT) -> DiffKeys:
         res = {}
-        for k in data.__diff__:
-            v = data.get(k)
-            if isinstance(v, ObjectT):
-                res[k] = self.diff_keys(v)
+        for k in v.__diff__:
+            val = v.get(k)
+            if isinstance(val, ObjectT):
+                res[k] = self.diff_keys(val)
             else:
                 res[k] = super().diff_keys({})
         return res

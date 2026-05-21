@@ -191,7 +191,8 @@ class Field(Generic[FT]):
             return self._typ.diff_keys(data)
         return None
 
-
+    def dump_partial(self, diff_keys: DiffKeys, v: FT):
+        return self._typ.dump_partial(diff_keys, v)
 
 
 _PT = TypeVar('_PT', bound='PacketBase')
