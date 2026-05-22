@@ -15,10 +15,17 @@ _V = TypeVar('_V')
 
 
 class HashT(Dict[_K, _V]):
-    _ro = False
-    __parent__: Optional[PacketBase] = None
-    __modified__: bool = False
-    __diff__: Set[_K] = set()
+    _ro: bool
+    __parent__: Optional[PacketBase]
+    __modified__: bool
+    __diff__: Set[_K]
+
+    def __init__(self, *args, **kwargs):
+        self._ro = False
+        self.__parent__ = None
+        self.__modified__ = False
+        self.__diff__ = set()
+        super().__init__(*args, **kwargs)
 
     def __setitem__(self, key: _K, value: _V):
         if not self._ro:
@@ -97,7 +104,11 @@ class Hash(TypeDef[HashT[_K, _V]]):
     def diff_keys(self, v: HashT[_K, _V]) -> DiffKeys:
         res = {}
         for k in v.__diff__:
-            res[k] = self._vtyp.diff_keys(v[k])
+            val = v.get(k)
+            if val:
+                res[k] = self._vtyp.diff_keys(val)
+            else:
+                res[k] = 1
         return res
 
     def dump_partial(self, field_paths: DiffKeys, v: HashT[_K, _V]):
@@ -117,4 +128,3 @@ class Hash(TypeDef[HashT[_K, _V]]):
                         else:
                             result[key] = self._vtyp.dump_partial(subpaths, val)
         return result
-

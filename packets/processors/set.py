@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Optional, Set as TSet, Self, Union, Type
+from typing import Iterable, TypeVar, Optional, Set as TSet, Self, Union, Type
 from .base import TypeDef
 from .subpacket import Subpacket
 from .._packetbase import PacketBase
@@ -12,9 +12,15 @@ _VT=TypeVar('_VT')
 
 
 class SetT(TSet[_VT]):
-    _ro = False
-    __parent__: Optional[PacketBase] = None
-    __modified__: bool = False
+    _ro: bool
+    __parent__: Optional[PacketBase]
+    __modified__: bool
+
+    def __init__(self, *args, **kwargs) -> None:
+        self._ro = False
+        self.__parent__ = None
+        self.__modified__ = False
+        super().__init__(*args, **kwargs)
 
     def add(self, value: _VT):
         if not self._ro:

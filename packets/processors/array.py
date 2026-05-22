@@ -12,13 +12,15 @@ _VT=TypeVar('_VT')
 
 
 class ArrayT(List[_VT]):
-    _ro = False
-    __parent__: Optional[PacketBase] = None
-    __modified__: bool = False
+    _ro: bool
+    __parent__: Optional[PacketBase]
+    __modified__: bool
 
     def __init__(self, iterable: Iterable[_VT] = (), size: Optional[int] = None) -> None:
         self._size = size
         self._ro = False
+        self.__parent__ = None
+        self.__modified__ = False
         super().__init__(iterable)
     
     def __setitem__(self, index: int, value: _VT):
