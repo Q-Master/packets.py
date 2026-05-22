@@ -16,7 +16,7 @@ FT = TypeVar('FT')
 
 
 class Field(Generic[FT]):
-    def __init__(self, typ: TypeDef[FT], name: Optional[str] = None, default: Union[FT, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False) -> None:
+    def __init__(self, typ: TypeDef[FT], name: Optional[str] = None, default: Union[FT, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False, may_be_none: bool = False) -> None:
         self._typ = typ.clone()
         self.name: str = name # type: ignore
         #default value is ALWAYS raw value, so need to convert to Python value
@@ -30,12 +30,10 @@ class Field(Generic[FT]):
         self._instance_modified_name = ''
         self._required = required
         self._override = override
-        #print(f'INIT {self.__class__.__name__}')
+        self._may_be_none = may_be_none
 
     def __set__(self, instance: 'PacketBase', value: FT):
-        #print(f'Set {self._name} to {value}')
         if self._typ._ro and not instance.__loading__:
-            #print(f'Not setting {instance.__class__.__name__}::{self.name}. CONST')
             return
         if __debug__:
             if self._required and value is not None:
@@ -100,7 +98,6 @@ class Field(Generic[FT]):
         assert self.name is not None
         owner.__raw_mapping__[self.name] = name
         owner.__annotations__[self.name] = self._typ.self_type()
-        #print(f'SET NAME to {self._name}')
 
     @property
     def required(self) -> bool:
@@ -109,7 +106,11 @@ class Field(Generic[FT]):
     @property
     def override(self) -> bool:
         return self._override
-    
+
+    @property
+    def may_be_none(self) -> bool:
+        return self._may_be_none
+
     @property
     def has_default(self) -> bool:
         return self._default_value is not _not_set
@@ -199,29 +200,47 @@ _PT = TypeVar('_PT', bound='PacketBase')
 
 
 @overload
-def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default = _not_set, required: Literal[False] = False, override: bool = ...) -> Optional[FT]: ...
+def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default = _not_set, required: Literal[False] = False, override: bool = ..., may_be_none: bool = ...) -> Optional[FT]: ...
+
+@overload
+def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default: Union[Any, None] = ..., required: Literal[False] = False, override: bool = ..., may_be_none: bool = ...) -> FT: ...
+
+
+@overload
+def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default = _not_set, required: Literal[True] = True, override: bool = ..., may_be_none: Literal[False] = False) -> FT: ...
 
 @overload
 def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default = _not_set, required: Literal[True] = True, override: bool = ...) -> FT: ...
 
 @overload
-def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default: Union[Any, None] = ..., required: bool = ..., override: bool = ...) -> FT: ...
+def makeField(processor: TypeDef[FT], name: Optional[str] = ..., default: Union[Any, None] = ..., required: Literal[True] = True, override: bool = ..., may_be_none: Literal[False] = False) -> FT: ...
+
 
 @overload
-def makeField(processor: Type[_PT], name: Optional[str] = ..., default = _not_set, required: Literal[False] = False, override: bool = ...) -> Optional[_PT]: ...
+def makeField(processor: Type[_PT], name: Optional[str] = ..., default = _not_set, required: Literal[False] = False, override: bool = ..., may_be_none: bool = ...) -> Optional[_PT]: ...
+
+@overload
+def makeField(processor: Type[_PT], name: Optional[str] = ..., default = _not_set, required: Literal[True] = True, override: bool = ..., may_be_none: Literal[False] = False) -> _PT: ...
 
 @overload
 def makeField(processor: Type[_PT], name: Optional[str] = ..., default = _not_set, required: Literal[True] = True, override: bool = ...) -> _PT: ...
 
 @overload
+def makeField(processor: Type[_PT], name: Optional[str] = ..., default = _not_set, required: Literal[True] = True, override: bool = ..., may_be_none: Literal[False] = False) -> _PT: ...
+
+@overload
 def makeField(processor: Type[_PT], name: Optional[str] = ..., default: Union[Any, None] = ..., required: bool = ..., override: bool = ...) -> _PT: ...
 
-def makeField(processor: Union[TypeDef[FT], Type[_PT]], name: Optional[str] = None, default: Union[Any, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False) -> Any:
+@overload
+def makeField(processor: Type[_PT], name: Optional[str] = ..., default: Union[Any, None] = ..., required: bool = ..., override: bool = ..., may_be_none: Literal[False] = False) -> _PT: ...
+
+
+def makeField(processor: Union[TypeDef[FT], Type[_PT]], name: Optional[str] = None, default: Union[Any, None, type[_not_set]] = _not_set, required: bool = False, override: bool = False, may_be_none: bool = False) -> Any:
     if isinstance(processor, TypeDef):
         typ = processor.self_type()
-        fld = Field[typ](processor, name, default, required, override)
+        fld = Field[typ](processor, name, default, required, override, may_be_none)
         return fld
     else:
         proc: TypeDef[_PT] = Subpacket[_PT](processor)
-        fld = Field[_PT](proc, name, default, required, override)
+        fld = Field[_PT](proc, name, default, required, override, may_be_none)
         return fld

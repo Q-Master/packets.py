@@ -33,7 +33,7 @@ class Packet(PacketBase):
         result = {}
         for field_name, field in self.__fields__.items():
             raw_value = field.py_to_raw(getattr(self, field_name))
-            if raw_value is not None:
+            if raw_value is not None or field.may_be_none:
                 result[field.name if raw else field_name] = raw_value
         return result
 
@@ -45,7 +45,7 @@ class Packet(PacketBase):
             if field:
                 if isinstance(subpaths, str):
                     raw_value = field.py_to_raw(getattr(self, fn))
-                    if raw_value is not None:
+                    if raw_value is not None or field.may_be_none:
                         result[field.name] = raw_value
                 else:
                     v = getattr(self, fn)

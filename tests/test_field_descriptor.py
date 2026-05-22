@@ -21,7 +21,6 @@ class FieldDescriptor(unittest.TestCase):
         a2.field_1 = 10
         self.assertEqual(a1.field_1, 9)
         self.assertEqual(a2.field_1, 10)
-        print(field_name(TestPacket1.field_1))
         self.assertEqual(vars(TestPacket2)['field_1'].name, 'f2')
 
     def test_field_descriptor_inheritance(self):
@@ -44,7 +43,6 @@ class FieldDescriptor(unittest.TestCase):
         
         a = TestPacket2(field_1 = 1, field_2 = '1')
         a_dump = a.dump()
-        print(a_dump)
         b = TestPacket2.load(a_dump)
         self.assertEqual(a, b)
 

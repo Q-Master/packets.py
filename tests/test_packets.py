@@ -35,7 +35,6 @@ class schema_case(unittest.TestCase):
 
         #
         obj = TestSchema()
-        print(obj.dump())
         self.assertEqual(obj.dump(), {})
         #
         obj2 = TestSchema.load(DICT)
@@ -278,6 +277,13 @@ class schema_case(unittest.TestCase):
         
         packet = Child()
         self.assertEqual(packet.dump(), {'field1': 3})
+
+    def test_may_be_none(self):
+        class NonePacket(Packet):
+            f1 = makeField(int_t, 'field1', may_be_none=True)
+
+        packet = NonePacket()
+        self.assertEqual(packet.dump(), {'field1': None})
 
     def test_subpacket(self):
         t = {
