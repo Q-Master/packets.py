@@ -210,18 +210,36 @@ class PacketBase(metaclass=PacketMeta):
             return default
 
     def get_by_raw(self, raw_field_name: str, default=None):
-        if raw_field_name in self.__class__.__raw_mapping__.keys():
+        if raw_field_name in self.field_raw_names():
             fn = self.__class__.__raw_mapping__[raw_field_name]
             return getattr(self, fn)
         else:
             return default
 
     def set_by_raw(self, raw_field_name: str, value: Any):
-        if raw_field_name in self.__class__.__raw_mapping__.keys():
+        if raw_field_name in self.field_raw_names():
             fn = self.__class__.__raw_mapping__[raw_field_name]
             setattr(self, fn, value)
         else:
             raise AttributeError(f'{self.__class__.__name__} has no RAW field name {raw_field_name}')
+
+    def get_by_any(self, some_field_name: str, default=None):
+        if some_field_name in self.field_raw_names():
+            fn = self.__class__.__raw_mapping__[some_field_name]
+            return getattr(self, fn)
+        elif some_field_name in self.field_names():
+            return getattr(self, some_field_name)
+        else:
+            return default
+
+    def set_by_any(self, some_field_name: str, value: Any):
+        if some_field_name in self.field_raw_names():
+            fn = self.__class__.__raw_mapping__[some_field_name]
+            setattr(self, fn, value)
+        elif some_field_name in self.field_names():
+            setattr(self, some_field_name, value)
+        else:
+            raise AttributeError(f'{self.__class__.__name__} has no field name {some_field_name}')
 
     def clone(self) -> Self:
         return pickle.loads(pickle.dumps(self, -1))

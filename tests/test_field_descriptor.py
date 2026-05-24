@@ -30,12 +30,27 @@ class FieldDescriptor(unittest.TestCase):
             a1.set_by_raw('f2', 8)
         self.assertEqual(a1.get_by_raw('f2'), None)
 
-        a2.set_by_raw('f2', 6)
-        self.assertEqual(a2.field_1, 6)
-        self.assertEqual(a2.get_by_raw('f2'), 6)
+        a2.set_by_raw('f2', 7)
+        self.assertEqual(a2.field_1, 7)
+        self.assertEqual(a2.get_by_raw('f2'), 7)
         with self.assertRaises(AttributeError):
             a2.set_by_raw('field_1', 8)
         self.assertEqual(a2.get_by_raw('field_1'), None)
+
+        a1.set_by_any('field_1', 8)
+        self.assertEqual(a1.field_1, 8)
+        self.assertEqual(a1.get_by_any('field_1'), 8)
+        with self.assertRaises(AttributeError):
+            a1.set_by_any('f2', 15)
+        self.assertEqual(a1.get_by_any('f2'), None)
+
+        a2.set_by_any('f2', 9)
+        self.assertEqual(a2.field_1, 9)
+        self.assertEqual(a2.get_by_any('f2'), 9)
+        a2.set_by_any('field_1', 10)
+        self.assertEqual(a2.field_1, 10)
+        self.assertEqual(a2.get_by_any('field_1'), 10)
+
 
 
     def test_field_descriptor_inheritance(self):
