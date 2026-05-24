@@ -209,6 +209,20 @@ class PacketBase(metaclass=PacketMeta):
         else:
             return default
 
+    def get_by_raw(self, raw_field_name: str, default=None):
+        if raw_field_name in self.__class__.__raw_mapping__.keys():
+            fn = self.__class__.__raw_mapping__[raw_field_name]
+            return getattr(self, fn)
+        else:
+            return default
+
+    def set_by_raw(self, raw_field_name: str, value: Any):
+        if raw_field_name in self.__class__.__raw_mapping__.keys():
+            fn = self.__class__.__raw_mapping__[raw_field_name]
+            setattr(self, fn, value)
+        else:
+            raise AttributeError(f'{self.__class__.__name__} has no RAW field name {raw_field_name}')
+
     def clone(self) -> Self:
         return pickle.loads(pickle.dumps(self, -1))
 

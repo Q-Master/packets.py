@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-__version__ = '0.22.5'
+__version__ = '0.22.6'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'

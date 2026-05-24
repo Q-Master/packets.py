@@ -23,6 +23,21 @@ class FieldDescriptor(unittest.TestCase):
         self.assertEqual(a2.field_1, 10)
         self.assertEqual(vars(TestPacket2)['field_1'].name, 'f2')
 
+        a1.set_by_raw('field_1', 6)
+        self.assertEqual(a1.field_1, 6)
+        self.assertEqual(a1.get_by_raw('field_1'), 6)
+        with self.assertRaises(AttributeError):
+            a1.set_by_raw('f2', 8)
+        self.assertEqual(a1.get_by_raw('f2'), None)
+
+        a2.set_by_raw('f2', 6)
+        self.assertEqual(a2.field_1, 6)
+        self.assertEqual(a2.get_by_raw('f2'), 6)
+        with self.assertRaises(AttributeError):
+            a2.set_by_raw('field_1', 8)
+        self.assertEqual(a2.get_by_raw('field_1'), None)
+
+
     def test_field_descriptor_inheritance(self):
         class TestPacket1(Packet):
             field_1 = makeField(int32_t)
