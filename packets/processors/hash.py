@@ -108,7 +108,7 @@ class Hash(TypeDef[HashT[_K, _V]]):
             if val:
                 res[k] = self._vtyp.diff_keys(val)
             else:
-                res[k] = 1
+                res[k] = '1'
         return res
 
     def dump_partial(self, field_paths: DiffKeys, v: HashT[_K, _V]):

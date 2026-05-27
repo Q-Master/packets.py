@@ -22,6 +22,7 @@ class Front(Packet):
 class DPTest(Packet):
     a: int = makeField(int_t, '_a', required=True)
     b: Dict[str, str] = makeField(Hash(string_t, string_t), default={})
+    b1: Dict[str, int] = makeField(Hash(string_t, int_t), default={})
     c: List[int] = makeField(Array(int_t), default=[])
 
 
@@ -46,11 +47,11 @@ class TestPacketDiff(unittest.TestCase):
 
 class TestDumpPartial(unittest.TestCase):
     def test_dump_partial(self):
-        pkt = DPTest(a=1, b={'1': '1', '2': '2', '3':'3'}, c=[1,2,3])
+        pkt = DPTest(a=1, b={'1': '1', '2': '2', '3':'3'}, b1={'1': 1, '2': 2, '3': 3}, c=[1,2,3])
         pkt.a = 2
         pkt.b['2'] = 'not 2'
+        pkt.b1['3'] = 7
         pkt.c = [1, 2, 4]
         self.assertEqual(pkt.is_modified(), True)
         kd = pkt.diff_keys()
-        self.assertDictEqual(pkt.dump_partial(kd), {'_a': 2, 'b': {'2': 'not 2'}, 'c': [1, 2, 4]})
-
+        self.assertDictEqual(pkt.dump_partial(kd), {'_a': 2, 'b': {'2': 'not 2'}, 'b1': {'3': 7}, 'c': [1, 2, 4]})
