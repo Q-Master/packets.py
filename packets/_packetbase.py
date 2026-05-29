@@ -185,7 +185,8 @@ class PacketBase(metaclass=PacketMeta):
                     field.update_partial(data, rv)
             else:
                 if rv is None:
-                    delattr(self, k)
+                    if hasattr(self, k):
+                        delattr(self, k)
                 else:
                     setattr(self, k, field.raw_to_py(rv))
 

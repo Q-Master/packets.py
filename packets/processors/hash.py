@@ -140,6 +140,7 @@ class Hash(TypeDef[HashT[_K, _V]]):
                     self._vtyp.update_partial(val, rv)
             else:
                 if rv is None:
-                    del instance[k]
+                    if k in instance:
+                        del instance[k]
                 else:
                     instance[k] = self._vtyp.raw_to_py(rv)

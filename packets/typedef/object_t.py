@@ -111,7 +111,8 @@ class Object(TypeDef[Dict]):
                     self.update_partial(val, rv)
             else:
                 if rv is None:
-                    del instance[k]
+                    if k in instance:
+                        del instance[k]
                 else:
                     instance[k] = rv
 
