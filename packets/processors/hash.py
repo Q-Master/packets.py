@@ -4,7 +4,7 @@ from enum import Enum
 from .base import TypeDef
 from .subpacket import Subpacket
 from .._packetbase import PacketBase
-from .._types import DiffKeys
+from .._types import DiffKeys, UpdateData
 
 
 __all__ = ['HashT', 'Hash']
@@ -111,7 +111,7 @@ class Hash(TypeDef[HashT[_K, _V]]):
                 res[k] = '1'
         return res
 
-    def dump_partial(self, field_paths: DiffKeys, v: HashT[_K, _V]):
+    def dump_partial(self, field_paths: DiffKeys, v: HashT[_K, _V]) -> dict:
         result = {}
         if len(v):
             for key, subpaths in field_paths.items():
@@ -128,3 +128,18 @@ class Hash(TypeDef[HashT[_K, _V]]):
                         else:
                             result[key] = self._vtyp.dump_partial(subpaths, val)
         return result
+
+    def update_partial(self, instance: HashT[_K, _V], update_data: UpdateData):
+        for rk, rv in update_data.items():
+            k = self._ktyp.raw_to_py(rk)
+            if isinstance(rv, UpdateData):
+                val = instance.setdefault(k, self._vtyp.zero_value())
+                if isinstance(val, PacketBase):
+                    val.update_partial(rv)
+                else:
+                    self._vtyp.update_partial(val, rv)
+            else:
+                if rv is None:
+                    del instance[k]
+                else:
+                    instance[k] = self._vtyp.raw_to_py(rv)

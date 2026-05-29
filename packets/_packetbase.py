@@ -1,14 +1,13 @@
 # -*- coding:utf-8 -*-
-from typing import TYPE_CHECKING, Union, TypeVar, Type, List, Dict, Any, TypeAlias, Self, Optional
+from typing import TYPE_CHECKING, Union, TypeVar, Type, List, Dict, Any, Self, Optional
 import pickle
-from abc import ABCMeta, abstractmethod
 from . import json
-from ._types import DiffKeys
+from ._types import DiffKeys, UpdateData
 if TYPE_CHECKING:
     from .field import Field
 
 
-class PacketMeta(ABCMeta):
+class PacketMeta(type):
     def __new__(cls, cls_name, bases, namespace):
         fields = {}
         rm = {}
@@ -169,19 +168,49 @@ class PacketBase(metaclass=PacketMeta):
         self._parse_raw(raw_data, update=True)
         self.on_packet_loaded()
 
-    def update_partial(self, field_pairs: Dict[str, Any]) -> None:
-        for k, v in field_pairs.items():
-            setattr(self, k, v)
+    def update_partial(self, update_data: UpdateData) -> None:
+        for rk, rv in update_data.items():
+            k = self._raw_name_to_name(rk)
+            field = self.__fields__[k]
+            if isinstance(rv, UpdateData):
+                #passthrough
+                if not hasattr(self, k):
+                    data = field.zero_value()
+                    setattr(self, k, data)
+                else:
+                    data = getattr(self, k)
+                if isinstance(data, PacketBase):
+                    data.update_partial(rv)
+                else:
+                    field.update_partial(data, rv)
+            else:
+                setattr(self, k, field.raw_to_py(rv))
 
-    @abstractmethod
-    def dump(self) -> Union[dict, list, type[None]]:
-        """Required interface method for packet serialization
-        """        
-        pass
+    def dump(self, raw=True) -> Dict[str, Any]:
+        result = {}
+        for field_name, field in self.__fields__.items():
+            raw_value = field.py_to_raw(getattr(self, field_name))
+            if raw_value is not None or field.may_be_none:
+                result[field.name if raw else field_name] = raw_value
+        return result
 
-    @abstractmethod
-    def dump_partial(self, field_paths: DiffKeys):
-        pass
+    def dump_partial(self, field_paths: DiffKeys) -> Dict[str, Any]:
+        result = {}
+        for raw_fn, subpaths in field_paths.items():
+            fn = self._raw_name_to_name(raw_fn)
+            field = self.__fields__.get(fn, None)
+            if field:
+                if isinstance(subpaths, str):
+                    raw_value = field.py_to_raw(getattr(self, fn))
+                    if raw_value is not None or field.may_be_none:
+                        result[field.name] = raw_value
+                else:
+                    v = getattr(self, fn)
+                    if isinstance(v, PacketBase):
+                        result[field.name] = v.dump_partial(subpaths)
+                    else:
+                        result[field.name] = field.dump_partial(subpaths, v)
+        return result
 
     def dumpz(self) -> bytes:
         """Serialize packet to zipped bytes
@@ -211,21 +240,21 @@ class PacketBase(metaclass=PacketMeta):
 
     def get_by_raw(self, raw_field_name: str, default=None):
         if raw_field_name in self.field_raw_names():
-            fn = self.__class__.__raw_mapping__[raw_field_name]
+            fn = self._raw_name_to_name(raw_field_name)
             return getattr(self, fn)
         else:
             return default
 
     def set_by_raw(self, raw_field_name: str, value: Any):
         if raw_field_name in self.field_raw_names():
-            fn = self.__class__.__raw_mapping__[raw_field_name]
+            fn = self._raw_name_to_name(raw_field_name)
             setattr(self, fn, value)
         else:
             raise AttributeError(f'{self.__class__.__name__} has no RAW field name {raw_field_name}')
 
     def get_by_any(self, some_field_name: str, default=None):
         if some_field_name in self.field_raw_names():
-            fn = self.__class__.__raw_mapping__[some_field_name]
+            fn = self._raw_name_to_name(some_field_name)
             return getattr(self, fn)
         elif some_field_name in self.field_names():
             return getattr(self, some_field_name)
@@ -234,7 +263,7 @@ class PacketBase(metaclass=PacketMeta):
 
     def set_by_any(self, some_field_name: str, value: Any):
         if some_field_name in self.field_raw_names():
-            fn = self.__class__.__raw_mapping__[some_field_name]
+            fn = self._raw_name_to_name(some_field_name)
             setattr(self, fn, value)
         elif some_field_name in self.field_names():
             setattr(self, some_field_name, value)
@@ -250,15 +279,16 @@ class PacketBase(metaclass=PacketMeta):
         """        
         pass
 
-    @abstractmethod
-    def _parse_raw(self, raw_data, strict=True, update=False):
-        """Parse raw dict data and set it to self
-
-        Args:
-            raw_data (dict, list): raw json data
-            strict (bool, optional): option to ignore required fields. Defaults to True.
-        """
-        pass
+    def _parse_raw(self, raw_js, strict=True, update=False):
+        for field_name, field in self.__fields__.items():
+            r = raw_js.get(field.name, None)
+            if r is None and update:
+                continue
+            try:
+                v = field.raw_to_py(r, strict=strict)
+            except Exception as e:
+                raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
+            setattr(self, field_name, v)
 
     def diff_keys(self) -> DiffKeys:
         res = {}
@@ -272,3 +302,6 @@ class PacketBase(metaclass=PacketMeta):
 
     def toDict(self) -> Union[dict, list, type[None]]:
         return self.dump()
+
+    def _raw_name_to_name(self, raw_name: str) -> str:
+        return self.__class__.__raw_mapping__[raw_name]

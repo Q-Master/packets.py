@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
-from typing import TypeVar, Type, Generic, Self, Any
+from typing import TypeVar, Type, Generic, Self, Any, List
 from abc import ABCMeta, abstractmethod
-from .._types import DiffKeys
+from .._types import DiffKeys, UpdateData
 
 
 __all__ = ['TypeDef']
@@ -51,4 +51,10 @@ class TypeDef(Generic[T], metaclass=ABCMeta):
         return '1'
 
     def dump_partial(self, diff_keys: DiffKeys, v: T):
+        raise NotImplementedError(f'Not implemented in base')
+
+    def get_path(self, path: List[str], v: T):
+        raise NotImplementedError(f'Not implemented in base')
+
+    def update_partial(self, instance: T, update_data: UpdateData):
         raise NotImplementedError(f'Not implemented in base')

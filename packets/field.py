@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
-from typing import Generic, TypeVar, TYPE_CHECKING, Union, Optional, Any, overload, Type, Self, Literal
+from typing import Generic, TypeVar, TYPE_CHECKING, Union, Optional, Any, overload, Type, Self, Literal, List
 from copy import deepcopy
-from ._types import DiffKeys
+from ._types import DiffKeys, UpdateData
 from .processors.base import TypeDef
 from .processors import Subpacket
 if TYPE_CHECKING:
@@ -194,6 +194,9 @@ class Field(Generic[FT]):
 
     def dump_partial(self, diff_keys: DiffKeys, v: FT):
         return self._typ.dump_partial(diff_keys, v)
+
+    def update_partial(self, instance: FT, update_data: UpdateData):
+        self._typ.update_partial(instance, update_data)
 
 
 _PT = TypeVar('_PT', bound='PacketBase')

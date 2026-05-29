@@ -1,16 +1,18 @@
 from typing import Optional, List, Dict
 import unittest
-from packets import Packet, makeField
+from packets import Packet, makeField, UpdateData
 from packets.processors import Array
-from packets.processors import Hash
+from packets.processors import Hash, HashT
 from packets.typedef.int_t import int_t
 from packets.typedef.string_t import string_t
 from packets.typedef.float_t import float_t 
+
 
 class Internal(Packet):
     d: Optional[int] = makeField(int_t)
     e: str = makeField(string_t, '_e', required=True)
     f: List[str] = makeField(Array(string_t), default=[])
+    g: Dict[str, str] = makeField(Hash(string_t, string_t), default={})
 
 
 class Front(Packet):
@@ -39,13 +41,11 @@ class TestPacketDiff(unittest.TestCase):
         pkt.c.e = 'test2'
         pkt.c.d = 8
         pkt.c.f = ['1', '2', '6']
-        if pkt.is_modified():
-            keys_diff = pkt.diff_keys()
-            self.assertIsInstance(keys_diff, dict)
-            self.assertDictEqual(keys_diff, {'_a': '1', 'c': {'_e': '1', 'd': '1', 'f': '1'}})
+        self.assertEqual(pkt.is_modified(), True)
+        keys_diff = pkt.diff_keys()
+        self.assertIsInstance(keys_diff, dict)
+        self.assertDictEqual(keys_diff, {'_a': '1', 'c': {'_e': '1', 'd': '1', 'f': '1'}})
 
-
-class TestDumpPartial(unittest.TestCase):
     def test_dump_partial(self):
         pkt = DPTest(a=1, b={'1': '1', '2': '2', '3':'3'}, b1={'1': 1, '2': 2, '3': 3}, c=[1,2,3])
         pkt.a = 2
@@ -55,3 +55,26 @@ class TestDumpPartial(unittest.TestCase):
         self.assertEqual(pkt.is_modified(), True)
         kd = pkt.diff_keys()
         self.assertDictEqual(pkt.dump_partial(kd), {'_a': 2, 'b': {'2': 'not 2'}, 'b1': {'3': 7}, 'c': [1, 2, 4]})
+
+    def test_update_partial(self):
+        pkt = Front(
+            a = 10, b = 4.0,
+            c = Internal(
+                e = 'test',
+                f = ['1', '2', '3', '4'],
+                g = {'1': '2'}
+            )
+        )
+        self.assertEqual(pkt.dump(), {'_a': 10, 'b': 4.0, 'c': {'_e': 'test', 'f': ['1', '2', '3', '4'], 'g': {'1': '2'}}})
+
+        update = UpdateData({
+            '_a': 2,
+            'b': None,
+            'c': UpdateData({
+                '_e': 'done', 
+                'f': UpdateData({'0': 7}), 
+                'g': UpdateData({'3': '4'})
+            })
+        })
+        pkt.update_partial(update)
+        self.assertEqual(pkt.dump(), {'_a': 2, 'c': {'_e': 'done', 'f': ['7', '2', '3', '4'], 'g': {'1': '2', '3': '4'}}})

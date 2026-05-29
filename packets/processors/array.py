@@ -3,6 +3,7 @@ from typing import TypeVar, Optional, List, Iterable, Self, Union, Type
 from .base import TypeDef
 from .subpacket import Subpacket
 from .._packetbase import PacketBase
+from .._types import DiffKeys, UpdateData
 
 
 __all__ = ['Array', 'ArrayT']
@@ -111,3 +112,26 @@ class Array(TypeDef[ArrayT[_VT]]):
     @property
     def size(self) -> Optional[int]:
         return self._size
+
+    def dump_partial(self, field_paths: DiffKeys, v: ArrayT[_VT]) -> list:
+        return self.py_to_raw(v)
+
+    def update_partial(self, instance: ArrayT[_VT], update_data: UpdateData):
+        for rk, rv in update_data.items():
+            k = int(rk)
+            if k == len(instance):
+                # means adding the next element:
+                val = instance.append(self._typ.zero_value())
+            else:
+                val = instance[k]
+            if isinstance(rv, UpdateData):
+                if isinstance(val, PacketBase):
+                    val.update_partial(rv)
+                else:
+                    self._typ.update_partial(val, rv) # type: ignore
+            else:
+                if rv is None:
+                    # means deleting the k'th element
+                    instance.pop(k)
+                else:
+                    instance[k] = self._typ.raw_to_py(rv)

@@ -18,42 +18,6 @@ class Packet(PacketBase):
         b: B
     Serializes to {a: int, b: {a: str}}
     """
-    def _parse_raw(self, raw_js, strict=True, update=False):
-        for field_name, field in self.__fields__.items():
-            r = raw_js.get(field.name, None)
-            if r is None and update:
-                continue
-            try:
-                v = field.raw_to_py(r, strict=strict)
-            except Exception as e:
-                raise ValueError(f'Failed to parse "{self.__class__.__name__}::{field_name}": {e}')
-            setattr(self, field_name, v)
-
-    def dump(self, raw=True) -> Dict[str, Any]:
-        result = {}
-        for field_name, field in self.__fields__.items():
-            raw_value = field.py_to_raw(getattr(self, field_name))
-            if raw_value is not None or field.may_be_none:
-                result[field.name if raw else field_name] = raw_value
-        return result
-
-    def dump_partial(self, field_paths: DiffKeys) -> Dict[str, Any]:
-        result = {}
-        for raw_fn, subpaths in field_paths.items():
-            fn = self.__class__.__raw_mapping__[raw_fn]
-            field = self.__fields__.get(fn, None)
-            if field:
-                if isinstance(subpaths, str):
-                    raw_value = field.py_to_raw(getattr(self, fn))
-                    if raw_value is not None or field.may_be_none:
-                        result[field.name] = raw_value
-                else:
-                    v = getattr(self, fn)
-                    if isinstance(v, PacketBase):
-                        result[field.name] = v.dump_partial(subpaths)
-                    else:
-                        result[field.name] = field.dump_partial(subpaths, v)
-        return result
 
     @classmethod
     def with_fields(cls, *field_names: str) -> Type[Self]:

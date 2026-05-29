@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
-from typing import Iterable, TypeVar, Optional, Set as TSet, Self, Union, Type
+from typing import TypeVar, Optional, Set as TSet, Self, Union, Type
 from .base import TypeDef
 from .subpacket import Subpacket
 from .._packetbase import PacketBase
+from .._types import DiffKeys, UpdateData
 
 
 __all__ = ['SetT', 'Set']
@@ -89,3 +90,23 @@ class Set(TypeDef[SetT[_VT]]):
         c = self.__class__(self._typ.clone())
         c.set_ro(False)
         return c
+
+    def dump_partial(self, field_paths: DiffKeys, v: SetT[_VT]) -> set:
+        return self.py_to_raw(v)
+
+    def update_partial(self, instance: SetT[_VT], update_data: UpdateData):
+        # almost unusable
+        for rk, rv in update_data.items():
+            val = self._typ.raw_to_py(rk) # type: ignore
+            if val not in instance:
+                instance.add(val)
+            if isinstance(rv, UpdateData):
+                if isinstance(val, PacketBase):
+                    val.update_partial(rv)
+                else:
+                    self._typ.update_partial(val, rv) # type: ignore
+            else:
+                instance.remove(val)
+                if rv is not None:
+                    # means updating the element val, not just deleting
+                    instance.add(self._typ.raw_to_py(rv))

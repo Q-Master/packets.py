@@ -1,15 +1,12 @@
 # -*- coding:utf-8 -*-
-from typing import Type, Optional, TypeVar, Dict
+from typing import Type, Optional, Dict
 from ..processors.base import TypeDef
 from .._packetbase import PacketBase
-from .._types import DiffKeys
+from .._types import DiffKeys, UpdateData
 
 
-_K = TypeVar('_K')
-_V = TypeVar('_V')
 
-
-class ObjectT(Dict[_K, _V]):
+class ObjectT(Dict):
     _ro = False
     __parent__: Optional[PacketBase] = None
     __modified__: bool = False
@@ -44,7 +41,7 @@ class ObjectT(Dict[_K, _V]):
             self.__parent__.set_modified()
 
 
-class Object(TypeDef[Dict[_K, _V]]):
+class Object(TypeDef[Dict]):
     """Simple python object processor"""
     def __init__(self) -> None:
         super().__init__()
@@ -72,7 +69,7 @@ class Object(TypeDef[Dict[_K, _V]]):
         return {}
 
     def self_type(self) -> Type[ObjectT]:
-        return ObjectT[_K, _V]
+        return ObjectT
 
     def diff_keys(self, v: ObjectT) -> DiffKeys:
         res = {}
@@ -83,6 +80,40 @@ class Object(TypeDef[Dict[_K, _V]]):
             else:
                 res[k] = super().diff_keys({})
         return res
+
+    def dump_partial(self, field_paths: DiffKeys, v: ObjectT) -> dict:
+        result = {}
+        if len(v):
+            for key, subpaths in field_paths.items():
+                if key in v.keys():
+                    val = v[key]
+                    if isinstance(subpaths, str):
+                        raw_value = self.py_to_raw(val)
+                        if raw_value is not None:
+                            result[key] = raw_value
+                    else:
+                        if isinstance(val, PacketBase):
+                            result[key] = val.dump_partial(subpaths)
+                        elif isinstance(val, (dict, ObjectT)):
+                            result[key] = self.dump_partial(subpaths, val) # type: ignore
+                        else:
+                            result[key] = self.py_to_raw(val)
+        return result
+
+    def update_partial(self, instance: ObjectT, update_data: UpdateData):
+        for rk, rv in update_data.items():
+            k = rk
+            if isinstance(rv, UpdateData):
+                val = instance.setdefault(k, self.zero_value())
+                if isinstance(val, PacketBase):
+                    val.update_partial(rv)
+                else:
+                    self.update_partial(val, rv)
+            else:
+                if rv is None:
+                    del instance[k]
+                else:
+                    instance[k] = rv
 
 
 object_t = Object()

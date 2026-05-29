@@ -22,25 +22,9 @@ class Front(Packet):
     def test_call(self) -> bool:
             return True
 
+
 class InternalPartial(Internal.with_fields('d', 'f')):
     pass
-
-class TestPacketDiff(unittest.TestCase):
-    def test_packet_diff(self):
-        pkt = Front(
-            a = 10, b = 4.0,
-            c = Internal(
-                e = 'test',
-                f = ['1', '2', '3', '4']
-            )
-        )
-        pkt.b = 3.0
-        pkt.c.e = 'test2'
-        pkt.c.d = 8
-        pkt.c.f = ['1', '2', '6']
-        if pkt.is_modified():
-            partial_pkt = pkt.dump_partial({'non_B': '1', 'c': {'d': '1', '_e': '1', 'f': '1'}})
-            self.assertDictEqual(partial_pkt, {'c': {'d': 8, '_e': 'test2', 'f': ['1', '2', '6']}, 'non_B': 3.0})
 
 
 class FrontPartial(Front.with_fields(
