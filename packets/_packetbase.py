@@ -184,7 +184,10 @@ class PacketBase(metaclass=PacketMeta):
                 else:
                     field.update_partial(data, rv)
             else:
-                setattr(self, k, field.raw_to_py(rv))
+                if rv is None:
+                    delattr(self, k)
+                else:
+                    setattr(self, k, field.raw_to_py(rv))
 
     def dump(self, raw=True) -> Dict[str, Any]:
         result = {}
