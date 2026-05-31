@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import TYPE_CHECKING, Union, TypeVar, Type, List, Dict, Any, Self, Optional
+from typing import TYPE_CHECKING, Union, TypeVar, Type, List, Dict, Any, Self, Optional, Set
 import pickle
 from . import json
 from ._types import DiffKeys, UpdateData
@@ -111,6 +111,14 @@ class PacketBase(metaclass=PacketMeta):
     def field_raw_names(cls):
         return cls.__raw_mapping__.keys()
     
+    @classmethod
+    def has_field(cls, item: Union[str, List[str], Set[str]]):
+        if isinstance(item, str):
+            result = item in cls.__fields__.keys()
+        else:
+            result = len(set(item)&set(cls.__fields__.keys())) > 0
+        return result
+
     @property
     def loading(self) -> bool:
         return self.__loading__

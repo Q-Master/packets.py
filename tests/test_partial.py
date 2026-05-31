@@ -14,6 +14,10 @@ class Internal(Packet):
     f: List[str] = makeField(Array(string_t), default=[])
 
 
+class SubInternal(Internal):
+    g: Optional[int] = makeField(int_t)
+
+
 class Front(Packet):
     a: int = makeField(int_t, default=10)
     b: Optional[float] = makeField(float_t, 'non_B')
@@ -27,6 +31,9 @@ class InternalPartial(Internal.with_fields('d', 'f')):
     pass
 
 
+class SubInternalPartial(SubInternal.with_fields('d', 'f')):
+    pass
+
 class FrontPartial(Front.with_fields(
     'a', 'non_B'
 )):
@@ -38,6 +45,7 @@ class TestWithFields(unittest.TestCase):
             class InternalPartialFail(Internal.with_fields('x', 'f')):
                 pass
         self.assertNotIn('e', InternalPartial.field_names())
+        self.assertNotIn('e', SubInternalPartial.field_names())
 
     def test_pickling(self):
         fp_pickled_class = pickle.loads(pickle.dumps(FrontPartial, -1))
@@ -50,3 +58,5 @@ class TestWithFields(unittest.TestCase):
         fp_pickled_pickled = pickle.loads(pickle.dumps(fp_pickled, -1))
         self.assertHasAttr(fp_pickled_pickled, 'test_call')
         self.assertEqual(fp_pickled_pickled.test_call(), True)
+        sip = SubInternalPartial(d=1)
+        sip_pickled = pickle.loads(pickle.dumps(sip))

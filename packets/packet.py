@@ -20,17 +20,38 @@ class Packet(PacketBase):
     """
 
     @classmethod
-    def with_fields(cls, *field_names: str) -> Type[Self]:
+    def with_fields(cls, *field_names: str, recurse: bool = False) -> Type[Self]:
         fields_set = set(field_names) # raw names!!!
         cls_fields_set = set(cls.__raw_mapping__.keys()) # raw names !!!
-        if len(fields_set&cls_fields_set) != len(fields_set):
+        if not recurse and (len(fields_set&cls_fields_set) != len(fields_set)):
             raise TypeError(f'Failed to prepare packet. Unknown fields: {fields_set-(fields_set&cls_fields_set)}')
-        normal_naming = {raw_name: cls.__raw_mapping__[raw_name] for raw_name in fields_set }
-        namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone() for field_name in normal_naming.values()}
-        partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', cls.__bases__, exec_body=lambda ns: ns.update(namespace))
-        setattr(sys.modules[cls.__module__], f'_{cls.__name__}', partial_class)
-        partial_class.__module__ = cls.__module__
-        partial_class.__qualname__ = f'_{cls.__name__}'
+        normal_naming = {cls.__raw_mapping__[raw_name] for raw_name in fields_set }
+        reconstructed_bases = []
+        to_remove = set()
+        need_recostruct = not recurse
+        # need to check all bases to `with_fields` it
+        for base in cls.__bases__:
+            if issubclass(base, Packet):
+                if base.has_field(normal_naming):
+                    reconstructed_bases.append(base.with_fields(*fields_set, recurse=True))
+                    for f in normal_naming:
+                        if f in base.__local_fields_names__:
+                            to_remove.add(f)
+                    need_recostruct |= True
+                else:
+                    reconstructed_bases.append(base.with_fields(recurse=True))
+                    need_recostruct |= True
+            else:
+                reconstructed_bases.append(base)
+        if need_recostruct:
+            normal_naming = normal_naming - to_remove
+            namespace: dict[str, Any] = {field_name: cls.__fields__[field_name].clone() for field_name in normal_naming}
+            partial_class: Type[Self] = types.new_class(f'Partial{cls.__name__}', tuple(reconstructed_bases), exec_body=lambda ns: ns.update(namespace))
+            setattr(sys.modules[cls.__module__], f'_{cls.__name__}', partial_class)
+            partial_class.__module__ = cls.__module__
+            partial_class.__qualname__ = f'_{cls.__name__}'
+        else:
+            partial_class = cls
         return partial_class
 
 
