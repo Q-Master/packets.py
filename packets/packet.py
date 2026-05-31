@@ -23,7 +23,9 @@ class Packet(PacketBase):
     def with_fields(cls, *field_names: str, recurse: bool = False) -> Type[Self]:
         fields_set = set(field_names) # raw names!!!
         cls_fields_set = set(cls.__raw_mapping__.keys()) # raw names !!!
-        if not recurse and (len(fields_set&cls_fields_set) != len(fields_set)):
+        if recurse:
+            fields_set &= cls_fields_set
+        elif len(fields_set&cls_fields_set) != len(fields_set):
             raise TypeError(f'Failed to prepare packet. Unknown fields: {fields_set-(fields_set&cls_fields_set)}')
         normal_naming = {cls.__raw_mapping__[raw_name] for raw_name in fields_set }
         reconstructed_bases = []
