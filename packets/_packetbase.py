@@ -31,6 +31,7 @@ class PacketBase(metaclass=PacketMeta):
     __loading__: bool
     __no_optionals__: bool = False
     __parent__: 'Optional[PacketBase]' = None
+    __diff__: set[str]
 
     def __init__(self, __strict__=True, **kwargs) -> None:
         """Constructor
@@ -55,6 +56,8 @@ class PacketBase(metaclass=PacketMeta):
             setattr(self, field_name, v)
         self.__loading__ = False
         self.__modified__ = False
+        self.__parent__ = None
+        self.__diff__ = set()
 
     def __repr__(self) -> str:
         pkt = ', '.join(
@@ -305,11 +308,16 @@ class PacketBase(metaclass=PacketMeta):
     def diff_keys(self) -> DiffKeys:
         res = {}
         if self.__modified__:
-            for f in self.__fields__.values():
-                v = f.diff_keys(self)
-                if v is None:
-                    continue
-                res[f.name] = v
+            allf = set(self.__raw_mapping__.keys()) - self.__diff__
+            for k in allf:
+                f = self.__fields__[self._raw_name_to_name(k)]
+                if f.is_modified(self):
+                    v = f.diff_keys(self)
+                    if v is None:
+                        continue
+                    res[f.name] = v
+            for k in self.__diff__:
+                res[k] = '1'
         return res
 
     def toDict(self) -> Union[dict, list, type[None]]:

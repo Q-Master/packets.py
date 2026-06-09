@@ -103,11 +103,14 @@ class Hash(TypeDef[HashT[_K, _V]]):
 
     def diff_keys(self, v: HashT[_K, _V]) -> DiffKeys:
         res = {}
-        for k in v.__diff__:
-            val = v.get(k)
-            if val:
-                res[k] = self._vtyp.diff_keys(val)
-            else:
+        if v.is_modified():
+            if self._vtyp.has_modified:
+                for k in set(v.keys()) - v.__diff__:
+                    dv = self._vtyp.diff_keys(v[k])
+                    if dv is None:
+                        continue
+                    res[k] = dv
+            for k in v.__diff__:
                 res[k] = '1'
         return res
 

@@ -27,7 +27,6 @@ class Field(Generic[FT]):
                 raise ValueError(f'RAW default {default} ({type(default)}) is not valid')
             self._default_value = self._typ.raw_to_py(default, strict=False)
         self._instance_name = ''
-        self._instance_modified_name = ''
         self._required = required
         self._override = override
         self._may_be_none = may_be_none
@@ -41,11 +40,9 @@ class Field(Generic[FT]):
         value = self._typ.py_to_py(value)
         if self._typ.has_modified and value is not None:
             value.__parent__ = instance # type: ignore
-            if not instance.__loading__:
-                value.set_modified() # type: ignore
         if not instance.__loading__:
             setattr(instance, self._instance_name, value)
-            setattr(instance, self._instance_modified_name, True)
+            instance.__diff__.add(self.name)
             instance.set_modified()
         else:
             if value is not None:
@@ -71,7 +68,7 @@ class Field(Generic[FT]):
     
     def __delete__(self, instance: 'PacketBase'):
         delattr(instance, self._instance_name)
-        delattr(instance, self._instance_modified_name)
+        instance.__diff__.add(self.name)
         instance.set_modified()
 
     def __set_name__(self, owner: 'PacketBase', name):
@@ -86,11 +83,9 @@ class Field(Generic[FT]):
             else:
                 self.name = f.name
                 self._instance_name = f._instance_name
-                self._instance_modified_name = f._instance_modified_name
                 self._required = f._required
         else:
             self._instance_name = f'_{name}'
-            self._instance_modified_name = f'_{name}_modified'
         if owner.__no_optionals__ and (not self._required and not self.has_default):
             raise TypeError(f'Packet "{owner.__name__}" can not have optional field "{self.name}"')
         owner.__fields__[name] = self
@@ -126,10 +121,8 @@ class Field(Generic[FT]):
         if self._typ.has_modified:
             if hasattr(instance, self._instance_name):
                 return getattr(instance, self._instance_name).is_modified()
-            else:
-                return False
-        return getattr(instance, self._instance_modified_name, False)
-    
+        return False
+
     def py_to_py(self, v: FT, strict=True) -> Optional[FT]:
         res: Optional[FT]
         if v is None:
@@ -186,7 +179,7 @@ class Field(Generic[FT]):
     def set_ro(self, ro: bool):
         self._typ.set_ro(ro)
 
-    def diff_keys(self, instance: 'PacketBase') -> Optional[Union[str, None, DiffKeys]]:
+    def diff_keys(self, instance: 'PacketBase') -> Optional[Union[str, DiffKeys]]:
         if self.is_modified(instance):
             data = getattr(instance, self._instance_name)
             return self._typ.diff_keys(data)

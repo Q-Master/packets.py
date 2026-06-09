@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict
 import unittest
 from packets import Packet, makeField, UpdateData
-from packets.processors import Array
+from packets.processors import Array, ArrayT
 from packets.processors import Hash, HashT
 from packets.typedef.int_t import int_t
 from packets.typedef.string_t import string_t
@@ -27,6 +27,13 @@ class DPTest(Packet):
     b1: Dict[str, int] = makeField(Hash(string_t, int_t), default={})
     c: List[int] = makeField(Array(int_t), default=[])
 
+
+class FrontPropagate(Packet):
+    a: int = makeField(int_t, '_a', default=10)
+    b: Optional[float] = makeField(float_t)
+    c: Optional[Internal] = makeField(Internal)
+    d: HashT[str, str] = makeField(Hash(string_t, string_t), default={})
+    e: ArrayT[int] = makeField(Array(int_t), default=[])
 
 class TestPacketDiff(unittest.TestCase):
     def test_packet_diff(self):
@@ -78,3 +85,33 @@ class TestPacketDiff(unittest.TestCase):
         })
         pkt.update_partial(update)
         self.assertEqual(pkt.dump(), {'_a': 2, 'c': {'_e': 'done', 'f': ['7', '2', '3', '4'], 'g': {'1': '2', '3': '4'}}})
+
+    def test_propagate_diff(self):
+        pkt = FrontPropagate(
+            a = 10, b = 4.0, e = [9]
+        )
+        pkt.c = Internal(
+            e = 'test',
+            f = ['1', '2', '3', '4'],
+            g = {'1': '2'}
+        )
+        pkt.d['1'] = '2'
+        pkt.e.append(10)
+        dk = pkt.diff_keys()
+        self.assertEqual(dk, {'c': '1', 'd': {'1': '1'}, 'e': '1'})
+        self.assertEqual(pkt.dump_partial(dk), {'c': {'_e': 'test', 'f': ['1', '2', '3', '4'], 'g': {'1': '2'}}, 'd': {'1': '2'}, 'e': [9, 10]})
+
+    def test_array_diff(self):
+        pkt = FrontPropagate(
+            a = 10, b = 4.0, e = [9]
+        )
+        pkt.c = Internal(
+            e = 'test',
+            f = ['1', '2', '3', '4'],
+            g = {'1': '2'}
+        )
+        pkt.d['1'] = '2'
+        pkt.e[0] = 7
+        dk = pkt.diff_keys()
+        self.assertEqual(dk, {'c': '1', 'd': {'1': '1'}, 'e': '1'})
+        self.assertEqual(pkt.dump_partial(dk), {'c': {'_e': 'test', 'f': ['1', '2', '3', '4'], 'g': {'1': '2'}}, 'd': {'1': '2'}, 'e': [7]})

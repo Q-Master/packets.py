@@ -16,33 +16,48 @@ class ArrayT(List[_VT]):
     _ro: bool
     __parent__: Optional[PacketBase]
     __modified__: bool
+    __local_modified__: bool
 
     def __init__(self, iterable: Iterable[_VT] = (), size: Optional[int] = None) -> None:
         self._size = size
         self._ro = False
         self.__parent__ = None
         self.__modified__ = False
+        self.__local_modified__ = False
         super().__init__(iterable)
     
     def __setitem__(self, index: int, value: _VT):
         if not self._ro:
             super().__setitem__(index, value)
+            self.__local_modified__ = True
+            self.set_modified()
             if hasattr(value, 'set_modified'):
                 value.__parent__ = self # type: ignore
     
     def __delitem__(self, index: int):
         if not self._ro:
+            self.__local_modified__ = True
+            self.set_modified()
             super().__delitem__(index)
     
     def __len__(self) -> int:
         return super().__len__() or self._size or 0
     
+    def append(self, object: _VT) -> None:
+        if not self._ro:
+            if self._size is None or len(self) < self._size:
+                self.set_modified()
+                super().append(object)
+            else:
+                raise IndexError(f'Sized array size overload: {self._size}')
+    
     def insert(self, index: int, value: _VT):
         if not self._ro:
             if self._size is None or len(self) < self._size:
+                self.set_modified()
                 super().insert(index, value)
             else:
-                raise IndexError('Sized arrays doesnt support inserting or adding')
+                raise IndexError(f'Sized array size overload: {self._size}')
 
     def set_ro(self, ro: bool):
         self._ro = ro
@@ -52,6 +67,9 @@ class ArrayT(List[_VT]):
 
     def is_modified(self) -> bool:
         return self.__modified__
+
+    def is_local_modified(self) -> bool:
+        return self.__local_modified__
     
     def set_modified(self):
         self.__modified__ = True
@@ -112,6 +130,23 @@ class Array(TypeDef[ArrayT[_VT]]):
     @property
     def size(self) -> Optional[int]:
         return self._size
+
+    def diff_keys(self, v: ArrayT[_VT]) -> Optional[Union[str, DiffKeys]]:
+        if v.is_modified():
+            if v.is_local_modified():
+                return '1'
+            elif not self._typ.has_modified:
+                return '1'
+            else:
+                res = {}
+                for i, val in enumerate(v):
+                    dv = self._typ.diff_keys(val)
+                    if dv is None:
+                        continue
+                    else:
+                        res[str(i)] = dv
+                return res
+        return None
 
     def dump_partial(self, field_paths: DiffKeys, v: ArrayT[_VT]) -> list:
         return self.py_to_raw(v)

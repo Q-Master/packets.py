@@ -9,8 +9,15 @@ from .._types import DiffKeys, UpdateData
 class ObjectT(Dict):
     _ro = False
     __parent__: Optional[PacketBase] = None
-    __modified__: bool = False
+    __modified__: bool
     __diff__ = set()
+
+    def __init__(self, *args, **kwargs) -> None:
+        self._ro = False
+        self.__parent__ = None
+        self.__modified__ = False
+        self.__diff__ = set()
+        return super().__init__(*args, **kwargs)
 
     def __setitem__(self, key, value):
         if not self._ro:
@@ -55,8 +62,6 @@ class Object(TypeDef[Dict]):
 
     def raw_to_py(self, r, strict=True) -> ObjectT:
         d = ObjectT(r)
-        d.__diff__ = set()
-        d.__modified__ = False
         return d
     
     def py_to_raw(self, v: ObjectT) -> dict:
@@ -73,12 +78,22 @@ class Object(TypeDef[Dict]):
 
     def diff_keys(self, v: ObjectT) -> DiffKeys:
         res = {}
-        for k in v.__diff__:
-            val = v.get(k)
-            if isinstance(val, ObjectT):
-                res[k] = self.diff_keys(val)
-            else:
-                res[k] = super().diff_keys({})
+        if v.is_modified():
+            not_diffkeys = set(v.keys())-v.__diff__
+            for k in not_diffkeys:
+                value = v[k]
+                if isinstance(value, 'PacketBase'):
+                    dv = value.diff_keys()
+                    if dv is None:
+                        continue
+                    res[k] = dv
+                elif isinstance(value, ObjectT):
+                    dv = self.diff_keys(value)
+                    if dv is None:
+                        continue
+                    res[k] = dv
+            for k in v.__diff__:
+                res[k] = '1'
         return res
 
     def dump_partial(self, field_paths: DiffKeys, v: ObjectT) -> dict:

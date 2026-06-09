@@ -91,6 +91,9 @@ class Set(TypeDef[SetT[_VT]]):
         c.set_ro(False)
         return c
 
+    def diff_keys(self, v: SetT[_VT]):
+        return '1' if v.is_modified() else None
+
     def dump_partial(self, field_paths: DiffKeys, v: SetT[_VT]) -> set:
         return self.py_to_raw(v)
 
