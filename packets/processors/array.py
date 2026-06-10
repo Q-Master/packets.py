@@ -143,9 +143,8 @@ class Array(TypeDef[ArrayT[_VT]]):
                     dv = self._typ.diff_keys(val)
                     if dv is None:
                         continue
-                    else:
-                        res[str(i)] = dv
-                return res
+                    res[str(i)] = dv
+                return res if res else None
         return None
 
     def dump_partial(self, field_paths: DiffKeys, v: ArrayT[_VT]) -> list:

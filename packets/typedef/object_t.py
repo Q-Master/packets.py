@@ -76,7 +76,7 @@ class Object(TypeDef[Dict]):
     def self_type(self) -> Type[ObjectT]:
         return ObjectT
 
-    def diff_keys(self, v: ObjectT) -> DiffKeys:
+    def diff_keys(self, v: ObjectT) -> Optional[DiffKeys]:
         res = {}
         if v.is_modified():
             not_diffkeys = set(v.keys())-v.__diff__
@@ -84,17 +84,16 @@ class Object(TypeDef[Dict]):
                 value = v[k]
                 if isinstance(value, 'PacketBase'):
                     dv = value.diff_keys()
-                    if dv is None:
-                        continue
-                    res[k] = dv
                 elif isinstance(value, ObjectT):
                     dv = self.diff_keys(value)
-                    if dv is None:
-                        continue
-                    res[k] = dv
+                else:
+                    continue
+                if dv is None:
+                    continue
+                res[k] = dv
             for k in v.__diff__:
                 res[k] = '1'
-        return res
+        return res if res else None
 
     def dump_partial(self, field_paths: DiffKeys, v: ObjectT) -> dict:
         result = {}
@@ -106,7 +105,7 @@ class Object(TypeDef[Dict]):
                         raw_value = self.py_to_raw(val)
                         if raw_value is not None:
                             result[key] = raw_value
-                    else:
+                    elif len(subpaths):
                         if isinstance(val, PacketBase):
                             result[key] = val.dump_partial(subpaths)
                         elif isinstance(val, (dict, ObjectT)):

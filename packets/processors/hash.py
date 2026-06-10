@@ -101,7 +101,7 @@ class Hash(TypeDef[HashT[_K, _V]]):
         c.set_ro(False)
         return c
 
-    def diff_keys(self, v: HashT[_K, _V]) -> DiffKeys:
+    def diff_keys(self, v: HashT[_K, _V]) -> Optional[DiffKeys]:
         res = {}
         if v.is_modified():
             if self._vtyp.has_modified:
@@ -112,7 +112,7 @@ class Hash(TypeDef[HashT[_K, _V]]):
                     res[k] = dv
             for k in v.__diff__:
                 res[k] = '1'
-        return res
+        return res if res else None
 
     def dump_partial(self, field_paths: DiffKeys, v: HashT[_K, _V]) -> dict:
         result = {}
@@ -125,7 +125,7 @@ class Hash(TypeDef[HashT[_K, _V]]):
                         raw_value = self._vtyp.py_to_raw(val)
                         if raw_value is not None:
                             result[key] = raw_value
-                    else:
+                    elif len(subpaths):
                         if isinstance(val, PacketBase):
                             result[key] = val.dump_partial(subpaths)
                         else:

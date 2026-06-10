@@ -219,12 +219,11 @@ class PacketBase(metaclass=PacketMeta):
                     raw_value = field.py_to_raw(getattr(self, fn))
                     if raw_value is not None or field.may_be_none:
                         result[field.name] = raw_value
-                else:
+                elif len(subpaths):
                     v = getattr(self, fn)
-                    if isinstance(v, PacketBase):
-                        result[field.name] = v.dump_partial(subpaths)
-                    else:
-                        result[field.name] = field.dump_partial(subpaths, v)
+                    dv = v.dump_partial(subpaths) if isinstance(v, PacketBase) else field.dump_partial(subpaths, v)
+                    if dv is not None or field.may_be_none:
+                        result[field.name] = dv
         return result
 
     def dumpz(self) -> bytes:
