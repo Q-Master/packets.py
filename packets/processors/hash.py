@@ -32,6 +32,7 @@ class HashT(Dict[_K, _V]):
             super().__setitem__(key, value)
             self.set_modified()
             self.__diff__.add(key)
+            self.update_parent(value)
 
     def __delitem__(self, key):
         if not self._ro:
@@ -54,7 +55,11 @@ class HashT(Dict[_K, _V]):
         self.__modified__ = True
         if self.__parent__:
             self.__parent__.set_modified()
-    
+
+    def update_parent(self, value: _V):
+        if hasattr(value, 'set_modified'):
+            value.__parent__ = self # type: ignore
+
 
 class Hash(TypeDef[HashT[_K, _V]]):
     def __init__(self, ktyp: TypeDef[_K], vtyp: Union[TypeDef[_V], Type[_V]]) -> None:
@@ -107,7 +112,7 @@ class Hash(TypeDef[HashT[_K, _V]]):
             if self._vtyp.has_modified:
                 for k in set(v.keys()) - v.__diff__:
                     dv = self._vtyp.diff_keys(v[k])
-                    if dv is None:
+                    if not dv:
                         continue
                     res[k] = dv
             for k in v.__diff__:

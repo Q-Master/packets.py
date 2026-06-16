@@ -31,14 +31,13 @@ class ArrayT(List[_VT]):
             super().__setitem__(index, value)
             self.__local_modified__ = True
             self.set_modified()
-            if hasattr(value, 'set_modified'):
-                value.__parent__ = self # type: ignore
+            self.update_parent(value)
     
     def __delitem__(self, index: int):
         if not self._ro:
+            super().__delitem__(index)
             self.__local_modified__ = True
             self.set_modified()
-            super().__delitem__(index)
     
     def __len__(self) -> int:
         return super().__len__() or self._size or 0
@@ -46,18 +45,28 @@ class ArrayT(List[_VT]):
     def append(self, object: _VT) -> None:
         if not self._ro:
             if self._size is None or len(self) < self._size:
-                self.set_modified()
                 super().append(object)
+                self.set_modified()
+                self.__local_modified__ = True
+                self.update_parent(object)
             else:
                 raise IndexError(f'Sized array size overload: {self._size}')
     
     def insert(self, index: int, value: _VT):
         if not self._ro:
             if self._size is None or len(self) < self._size:
-                self.set_modified()
                 super().insert(index, value)
+                self.set_modified()
+                self.__local_modified__ = True
+                self.update_parent(value)
             else:
                 raise IndexError(f'Sized array size overload: {self._size}')
+
+    def remove(self, value: _VT):
+        if not self._ro:
+            super().remove(value)
+            self.set_modified()
+            self.__local_modified__ = True
 
     def set_ro(self, ro: bool):
         self._ro = ro
@@ -75,6 +84,10 @@ class ArrayT(List[_VT]):
         self.__modified__ = True
         if self.__parent__:
             self.__parent__.set_modified()
+
+    def update_parent(self, value: _VT):
+        if hasattr(value, 'set_modified'):
+            value.__parent__ = self # type: ignore
 
     @property
     def size(self) -> Optional[int]:

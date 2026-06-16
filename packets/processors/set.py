@@ -35,6 +35,11 @@ class SetT(TSet[_VT]):
             super().discard(value)
             self.set_modified()
 
+    def remove(self, value: _VT):
+        if not self._ro:
+            super().remove(value)
+            self.set_modified()
+
     def set_ro(self, ro: bool):
         self._ro = ro
         for vi in self:
