@@ -40,6 +40,12 @@ class HashT(Dict[_K, _V]):
             self.set_modified()
             self.__diff__.add(key)
 
+    def setdefault(self, key: _K, default: _V = None) -> _V:
+        if key not in self.keys():
+            self[key] = default
+        v = self[key]
+        return v
+
     def set_ro(self, ro: bool):
         self._ro = ro
         for ki, vi in self.items():

@@ -1,3 +1,47 @@
+[project]
+authors = [
+    {name="Vladimir Berezenko", email="qmaster2000@gmail.com"}
+]
+name = "packets"
+description = "Packets system for serialization/deserialization."
+dynamic = ["version"]
+requires-python = ">= 3.10"
+dependencies = [
+    "ujson"
+]
+classifiers = [
+    "Development Status :: 5", 
+    "Intended Audience :: Developers", 
+    "Programming Language :: Python", 
+    "Programming Language :: Python :: 3", 
+    "Programming Language :: Python :: 3 :: Only", 
+    "Programming Language :: Python :: 3.10", 
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12", 
+    "Programming Language :: Python :: 3.13", 
+    "Programming Language :: Python :: 3.14", 
+    "Operating System :: OS Independent", 
+    "Topic :: Software Development :: Libraries", 
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+keywords = [
+    "packets",
+    "serialization",
+    "deserialization",
+    "dictionary",
+    "application",
+    "developer",
+    "validation",
+    "json"
+]
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "ReadMe.md"
+
+[project.urls]
+Homepage = "https://github.com/Q-Master/packets.py"
+Repository = "https://github.com/Q-Master/packets.py"
+Issues = "https://github.com/Q-Master/packets.py/issues"
 
 [build-system]
 requires = ["setuptools"]

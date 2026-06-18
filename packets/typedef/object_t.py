@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Type, Optional, Dict
+from typing import Type, Optional, Dict, Any
 from ..processors.base import TypeDef
 from .._packetbase import PacketBase
 from .._types import DiffKeys, UpdateData
@@ -30,7 +30,13 @@ class ObjectT(Dict):
             super().__delitem__(key)
             self.set_modified()
             self.__diff__.add(key)
-
+    
+    def setdefault(self, key, default: Any = None) -> Any:
+        if key not in self.keys():
+            self[key] = default
+        v = self[key]
+        return v
+    
     def set_ro(self, ro: bool):
         self._ro = ro
         for ki, vi in self.items():

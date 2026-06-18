@@ -63,6 +63,9 @@ class Field(Generic[FT]):
             if self.has_default:
                 dflt = self.default
                 setattr(instance, self._instance_name, dflt)
+                instance.set_modified()
+                if self._typ.has_modified and dflt is not None:
+                    dflt.__parent__ = instance # type: ignore
                 return dflt
             return None
     

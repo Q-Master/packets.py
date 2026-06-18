@@ -36,15 +36,19 @@ class FrontPropagate(Packet):
     e: ArrayT[int] = makeField(Array(int_t), default=[])
 
 
-
 class HashPropogateInt(Packet):
     a: int = makeField(int_t, '_a', default=10)
     b: Optional[float] = makeField(float_t)
     c: int = makeField(int_t, required=True)
 
+
 class HashPropagate(Packet):
     a: int = makeField(int_t, '_a', default=10)
     b: HashT[str, HashPropogateInt] = makeField(Hash(string_t, HashPropogateInt), default={})
+
+
+class HashPropagateSetdefault(Packet):
+    a: HashT[str, ArrayT[str]] = makeField(Hash(string_t, Array(string_t)), default={})
 
 class TestPacketDiff(unittest.TestCase):
     def test_packet_diff(self):
@@ -111,6 +115,11 @@ class TestPacketDiff(unittest.TestCase):
         dk = pkt.diff_keys()
         self.assertEqual(dk, {'c': '1', 'd': {'1': '1'}, 'e': '1'})
         self.assertEqual(pkt.dump_partial(dk), {'c': {'_e': 'test', 'f': ['1', '2', '3', '4'], 'g': {'1': '2'}}, 'd': {'1': '2'}, 'e': [9, 10]})
+        pkt.e.remove(10)
+        dk = pkt.diff_keys()
+        self.assertEqual(dk, {'e': '1', 'd': {'1': '1'}, 'c': '1'})
+        self.assertEqual(pkt.dump_partial(dk), {'e': [9], 'd': {'1': '2'}, 'c': {'_e': 'test', 'f': ['1', '2', '3', '4'], 'g': {'1': '2'}}})
+
 
     def test_array_diff(self):
         pkt = FrontPropagate(
@@ -134,3 +143,10 @@ class TestPacketDiff(unittest.TestCase):
         dk = pkt.diff_keys()
         self.assertEqual(dk, {'b': {'1': {'_a': '1'}, '2': '1'}})
         self.assertEqual(pkt.dump_partial(dk), {'b': {'1': {'_a': 5}, '2': {'_a': 10, 'c': 2}}})
+
+    def test_hash_setdefault(self):
+        pkt = HashPropagateSetdefault()
+        pkt.a.setdefault('test', ArrayT[str]()).append('1')
+        dk = pkt.diff_keys()
+        self.assertEqual(dk, {'a': {'test': '1'}})
+        self.assertEqual(pkt.dump_partial(dk), {'a': {'test': ['1']}})
