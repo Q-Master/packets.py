@@ -150,3 +150,11 @@ class TestPacketDiff(unittest.TestCase):
         dk = pkt.diff_keys()
         self.assertEqual(dk, {'a': {'test': '1'}})
         self.assertEqual(pkt.dump_partial(dk), {'a': {'test': ['1']}})
+
+    def test_hash_parent_on_load(self):
+        pkt = HashPropagateSetdefault(a=HashT({'test': ArrayT(['1'])}))
+        pkt.a.setdefault('test', ArrayT[str]()).append('2')
+        pkt.a['test'].append('3')
+        dk = pkt.diff_keys()
+        self.assertEqual(dk, {'a': {'test': '1'}})
+        self.assertEqual(pkt.dump_partial(dk), {'a': {'test': ['1', '2', '3']}})

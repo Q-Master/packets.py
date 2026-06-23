@@ -17,13 +17,16 @@ class ObjectT(Dict):
         self.__parent__ = None
         self.__modified__ = False
         self.__diff__ = set()
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+        for v in self.values():
+            self.update_parent(v)
 
     def __setitem__(self, key, value):
         if not self._ro:
             super().__setitem__(key, value)
             self.set_modified()
             self.__diff__.add(key)
+            self.update_parent(value)
 
     def __delitem__(self, key):
         if not self._ro:
@@ -34,6 +37,7 @@ class ObjectT(Dict):
     def setdefault(self, key, default: Any = None) -> Any:
         if key not in self.keys():
             self[key] = default
+            self.update_parent(self[key])
         v = self[key]
         return v
     
@@ -53,6 +57,9 @@ class ObjectT(Dict):
         if self.__parent__:
             self.__parent__.set_modified()
 
+    def update_parent(self, value):
+        if hasattr(value, 'set_modified'):
+            value.__parent__ = self # type: ignore
 
 class Object(TypeDef[Dict]):
     """Simple python object processor"""

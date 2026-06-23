@@ -25,6 +25,8 @@ class ArrayT(List[_VT]):
         self.__modified__ = False
         self.__local_modified__ = False
         super().__init__(iterable)
+        for v in self:
+            self.update_parent(v)
     
     def __setitem__(self, index: int, value: _VT):
         if not self._ro:

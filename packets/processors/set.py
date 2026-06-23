@@ -22,6 +22,8 @@ class SetT(TSet[_VT]):
         self.__parent__ = None
         self.__modified__ = False
         super().__init__(*args, **kwargs)
+        for v in self:
+            self.update_parent(v)
 
     def add(self, value: _VT):
         if not self._ro:
@@ -53,6 +55,10 @@ class SetT(TSet[_VT]):
         self.__modified__ = True
         if self.__parent__:
             self.__parent__.set_modified()
+
+    def update_parent(self, value: _VT):
+        if hasattr(value, 'set_modified'):
+            value.__parent__ = self # type: ignore
 
 
 class Set(TypeDef[SetT[_VT]]):

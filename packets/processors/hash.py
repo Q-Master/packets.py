@@ -26,6 +26,9 @@ class HashT(Dict[_K, _V]):
         self.__modified__ = False
         self.__diff__ = set()
         super().__init__(*args, **kwargs)
+        for v in self.values():
+            self.update_parent(v)
+
 
     def __setitem__(self, key: _K, value: _V):
         if not self._ro:
