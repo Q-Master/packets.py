@@ -124,6 +124,8 @@ class Field(Generic[FT]):
         if self._typ.has_modified:
             if hasattr(instance, self._instance_name):
                 return getattr(instance, self._instance_name).is_modified()
+        else:
+            return self.name in instance.__diff__
         return False
 
     def py_to_py(self, v: FT, strict=True) -> Optional[FT]:
