@@ -4,7 +4,7 @@ from enum import Enum
 from .base import TypeDef
 
 
-__all__ = ['Enumeration', 'EnumerationByName']
+__all__ = ['Enumeration', 'EnumerationByName', 'EnumerationAsString']
 
 
 T = TypeVar('T', bound=Enum)
