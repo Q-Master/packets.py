@@ -41,6 +41,18 @@ class Enumeration(TypeDef[T]):
         return c
 
 
+class EnumerationAsString(Enumeration[T]):
+    """Enum processor. Stores **value** of enum as string in serialization
+    """
+    def check_raw(self, r: str) -> bool:
+        return isinstance(r, str)
+
+    def raw_to_py(self, r: str, strict=True) -> T:
+        return self._typ(int(r))
+
+    def py_to_raw(self, v: T) -> str:
+        return str(v.value)
+
 
 class EnumerationByName(Enumeration[T]):
     """Enum processor. Stores **name** of enum in serialization"""
