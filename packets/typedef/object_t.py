@@ -1,12 +1,15 @@
 # -*- coding:utf-8 -*-
-from typing import Type, Optional, Dict, Any
+from typing import Type, Optional, Dict, Any, TypeVar
 from ..processors.base import TypeDef
 from .._packetbase import PacketBase
 from .._types import DiffKeys, UpdateData
 
 
+_KT = TypeVar('_KT')
+_VT = TypeVar('_VT')
 
-class ObjectT(Dict):
+
+class ObjectT(Dict[_KT, _VT]):
     _ro = False
     __parent__: Optional[PacketBase] = None
     __modified__: bool
