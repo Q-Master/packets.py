@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from typing import Type, Self, Dict, Any, Generic, Optional, cast, List, Union, Set
+from typing import Type, Self, Dict, Any, Generic, Optional, cast, List, Union, Set, TypeVar, overload
 import types, sys
 from ._packetbase import PacketBase, PacketMeta
 from ._types import DiffKeys, UpdateData
@@ -90,6 +90,9 @@ class ArrayPacket(PacketBase):
         return self.dump()
 
 
+_TPTV = TypeVar('_TPTV', bound=Union[PacketBase, Any])
+
+
 class TablePacketMeta(PacketMeta):
     def __new__(cls, cls_name, bases, namespace):
         df = namespace.get('__default_field__') # here should come TypeDef[T] or PacketBase or None for bases
@@ -100,20 +103,20 @@ class TablePacketMeta(PacketMeta):
                 assert isinstance(df, TypeDef)
                 _df = df
             else:
-                _df = Subpacket[PT](df) # type: ignore
+                _df = Subpacket[_TPTV](df) # type: ignore
             namespace['__default_field__'] = _df
             namespace['__table_packet_data__typedef__'] = Hash(string_t, _df)
         return PacketMeta.__new__(cls, cls_name, bases, namespace)
 
 
-class TablePacket(Generic[PT], PacketBase, metaclass = TablePacketMeta):
+class TablePacket(PacketBase, Generic[_TPTV], metaclass = TablePacketMeta):
     """Same as a normal packet, but intended to use with initially unknown amount of rows.
 
     __default_field__ must be defined to show the structure of a row.
     """
-    __default_field__: Optional[PT] = None
-    __table_packet_data__: HashT[str, PT] = HashT()
-    __table_packet_data__typedef__: Hash[str, PT]
+    __default_field__: Optional[TypeDef[_TPTV]] = None
+    __table_packet_data__: HashT[str, _TPTV] = HashT()
+    __table_packet_data__typedef__: Hash[str, _TPTV]
     
     def __init__(self, __strict__=True, **kwargs) -> None:
         self.__table_packet_data__ = HashT()
@@ -122,12 +125,12 @@ class TablePacket(Generic[PT], PacketBase, metaclass = TablePacketMeta):
         curr_fields = set(self.__class__.__fields__.keys())
         curr_fields.update(self.__class__.__raw_mapping__.keys())
         new_ones = set(kwargs.keys()) - curr_fields
-        field = cast(TypeDef[PT], self.__class__.__default_field__)
+        assert self.__class__.__default_field__ is not None
         try:
             for k in new_ones:
                 r = kwargs.get(k, None)
                 if r is not None:
-                    self.__table_packet_data__[k] = field.py_to_py(r)
+                    self.__table_packet_data__[k] = self.__class__.__default_field__.py_to_py(r)
         except Exception as e:
             self.__loading__ = False
             raise ValueError(f'Failed to parse "{self.__class__.__name__}::{k}": {e}')
@@ -206,7 +209,8 @@ class TablePacket(Generic[PT], PacketBase, metaclass = TablePacketMeta):
 
     def dump(self, raw=True) -> Dict[str, Any]:
         result = super().dump(raw)
-        result.update({k : cast(TypeDef[PT], self.__default_field__).py_to_raw(v) for k, v in self.__table_packet_data__.items() if v is not None})
+        assert self.__default_field__ is not None
+        result.update({k : self.__default_field__.py_to_raw(cast(_TPTV, v)) for k, v in self.__table_packet_data__.items() if v is not None})
         return result
 
     def dump_partial(self, field_paths: DiffKeys) -> Dict[str, Any]:
@@ -223,11 +227,12 @@ class TablePacket(Generic[PT], PacketBase, metaclass = TablePacketMeta):
         for k_v in self.__table_packet_data__.items():
             yield k_v
 
-    def __getattr__(self, name) -> PT:
+    def __getattr__(self, name) -> _TPTV:
         return self.__table_packet_data__[name]
 
-    def __setattr__(self, name: str, value: PT) -> None:
-        if hasattr(self, name):
+    def __setattr__(self, name: str, value: _TPTV) -> None:
+        has_attr = name in self.__fields__.keys() or name in dir(self)
+        if has_attr:
             super().__setattr__(name, value)
         else:
             self.__table_packet_data__[name] = value
@@ -237,14 +242,13 @@ class TablePacket(Generic[PT], PacketBase, metaclass = TablePacketMeta):
         curr_fields = set(self.__class__.__fields__.keys())
         curr_fields.update(self.__class__.__raw_mapping__.keys())
         new_ones = set(raw_js.keys()) - curr_fields
+        assert self.__default_field__ is not None
         try:
             for k in new_ones:
                 r = raw_js.get(k, None)
                 if r is None and update:
                     continue
-                v = cast(TypeDef[PT], self.__default_field__).raw_to_py(r, strict)
-                assert v is not None
-                self.__table_packet_data__[k] = v
+                self.__table_packet_data__[k] = self.__default_field__.raw_to_py(r, strict)
         except Exception as e:
             self.__loading__ = False
             raise ValueError(f'Failed to parse "{self.__class__.__name__}::{k}": {e}')
@@ -261,5 +265,14 @@ class TablePacket(Generic[PT], PacketBase, metaclass = TablePacketMeta):
         return self.__class__.__raw_mapping__.get(raw_name, raw_name)
 
 
-def makeDefaultField(processor: Union[TypeDef[PT], Type[PT]]) -> PT:
-    return cast(PT, processor)
+@overload
+def makeDefaultField(processor: TypeDef[_TPTV]) -> TypeDef[_TPTV]: ...
+
+@overload
+def makeDefaultField(processor: Type[PT]) -> TypeDef[PT]: ...
+
+def makeDefaultField(processor: Union[TypeDef[_TPTV], Type[PT]]) -> Union[TypeDef[_TPTV], TypeDef[PT]]:
+    if isinstance(processor, TypeDef):
+        return processor
+    else:
+        return cast(TypeDef[PT], processor)
