@@ -93,9 +93,9 @@ class ArrayPacket(PacketBase):
 class TablePacketMeta(PacketMeta):
     def __new__(cls, cls_name, bases, namespace):
         df = namespace.get('__default_field__') # here should come TypeDef[T] or PacketBase or None for bases
-        if (df is None or not isinstance(df, (TypeDef, PacketBase, PacketMeta))) and not (PacketBase in bases):
+        if df and not isinstance(df, (TypeDef, PacketBase, PacketMeta)):
             raise AttributeError(f'TablePacket "{cls_name}" __default_field__ is mandatory and must be a processor, but it is {type(df)}')
-        else:
+        if df:
             if isinstance(df, TypeDef):
                 assert isinstance(df, TypeDef)
                 _df = df
