@@ -1,8 +1,7 @@
 # -*- coding: utf8 -*-
 import unittest
-from packets._util import field_name
 from packets.field import makeField
-from packets.packet import Packet, TablePacket
+from packets.packet import Packet, TablePacket, makeDefaultField
 from packets.typedef.int32_t import int32_t
 from packets.typedef.string_t import string_t
 
@@ -95,7 +94,7 @@ class FieldDescriptor(unittest.TestCase):
             f1 = makeField(int32_t)
             f2 = makeField(string_t)
         class TestPacket1(TablePacket[InternalData]):
-            __default_field__ = makeField(InternalData, required=True)
+            __default_field__ = makeDefaultField(InternalData)
         
         a = TestPacket1.load(js)
         self.assertEqual(a.field1.f1, 1)

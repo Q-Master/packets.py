@@ -41,12 +41,12 @@ class Field(Generic[FT]):
         if self._typ.has_modified and value is not None:
             value.__parent__ = instance # type: ignore
         if not instance.__loading__:
-            setattr(instance, self._instance_name, value)
+            setattr(instance.__holder__, self._instance_name, value)
             instance.__diff__.add(self.name)
             instance.set_modified()
         else:
             if value is not None:
-                setattr(instance, self._instance_name, value)
+                setattr(instance.__holder__, self._instance_name, value)
 
     @overload
     def __get__(self, instance: None, owner = None) -> Self:...
@@ -57,12 +57,12 @@ class Field(Generic[FT]):
     def __get__(self, instance: 'Union[PacketBase, None]', owner = None) -> Union[FT, Self, None]:
         if instance is None:
             return self
-        if hasattr(instance, self._instance_name):
-            return getattr(instance, self._instance_name)
+        if hasattr(instance.__holder__, self._instance_name):
+            return getattr(instance.__holder__, self._instance_name)
         else:
             if self.has_default:
                 dflt = self.default
-                setattr(instance, self._instance_name, dflt)
+                setattr(instance.__holder__, self._instance_name, dflt)
                 instance.set_modified()
                 if self._typ.has_modified and dflt is not None:
                     dflt.__parent__ = instance # type: ignore
@@ -70,13 +70,11 @@ class Field(Generic[FT]):
             return None
     
     def __delete__(self, instance: 'PacketBase'):
-        delattr(instance, self._instance_name)
+        delattr(instance.__holder__, self._instance_name)
         instance.__diff__.add(self.name)
         instance.set_modified()
 
     def __set_name__(self, owner: 'PacketBase', name):
-        if name == '__default_field__':
-            return
         if self.name is None:
             self.name = name
         f = owner.__fields__.get(name, None)
@@ -91,11 +89,12 @@ class Field(Generic[FT]):
             self._instance_name = f'_{name}'
         if owner.__no_optionals__ and (not self._required and not self.has_default):
             raise TypeError(f'Packet "{owner.__name__}" can not have optional field "{self.name}"')
-        owner.__fields__[name] = self
-        owner.__local_fields_names__.append(name)
-        assert self.name is not None
-        owner.__raw_mapping__[self.name] = name
-        owner.__annotations__[self.name] = self._typ.self_type()
+        if name != '__table_packet_data__':
+            owner.__fields__[name] = self
+            owner.__local_fields_names__.append(name)
+            assert self.name is not None
+            owner.__raw_mapping__[self.name] = name
+            owner.__annotations__[self.name] = self._typ.self_type()
 
     @property
     def required(self) -> bool:
@@ -122,8 +121,8 @@ class Field(Generic[FT]):
 
     def is_modified(self, instance: 'PacketBase') -> bool:
         if self._typ.has_modified:
-            if hasattr(instance, self._instance_name):
-                return getattr(instance, self._instance_name).is_modified()
+            if hasattr(instance.__holder__, self._instance_name):
+                return getattr(instance.__holder__, self._instance_name).is_modified()
         else:
             return self.name in instance.__diff__
         return False
@@ -186,7 +185,7 @@ class Field(Generic[FT]):
 
     def diff_keys(self, instance: 'PacketBase') -> Optional[Union[str, DiffKeys]]:
         if self.is_modified(instance):
-            data = getattr(instance, self._instance_name)
+            data = getattr(instance.__holder__, self._instance_name)
             return self._typ.diff_keys(data)
         return None
 

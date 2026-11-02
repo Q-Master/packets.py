@@ -15,20 +15,18 @@ _V = TypeVar('_V')
 
 
 class HashT(Dict[_K, _V]):
-    _ro: bool
-    __parent__: Optional[PacketBase]
-    __modified__: bool
-    __diff__: Set[_K]
+    _ro: bool = False
+    __parent__: Optional[PacketBase] = None
+    __modified__: bool = False
+    __diff__: Set[_K] = set()
 
     def __init__(self, *args, **kwargs):
         self._ro = False
         self.__parent__ = None
-        self.__modified__ = False
-        self.__diff__ = set()
+        self.reset_modified()
         super().__init__(*args, **kwargs)
         for v in self.values():
             self.update_parent(v)
-
 
     def __setitem__(self, key: _K, value: _V):
         if not self._ro:
@@ -68,6 +66,11 @@ class HashT(Dict[_K, _V]):
     def update_parent(self, value: _V):
         if hasattr(value, 'set_modified'):
             value.__parent__ = self # type: ignore
+
+    def reset_modified(self):
+        self.__modified__ = False
+        self.__diff__ = set()
+
 
 
 class Hash(TypeDef[HashT[_K, _V]]):

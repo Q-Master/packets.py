@@ -3,7 +3,7 @@ from . import _json as json
 from ._packetbase import PacketBase
 from ._types import DiffKeys, UpdateData
 from ._util import field_name, as_field
-from .packet import Packet, TablePacket, ArrayPacket
+from .packet import Packet, TablePacket, ArrayPacket, makeDefaultField
 from .field import Field, makeField
 from .processors.base import TypeDef
 
@@ -11,11 +11,11 @@ from .processors.base import TypeDef
 __all__ = [
     'json', 
     'PacketBase', 'Packet', 'TablePacket', 'ArrayPacket', 'DiffKeys', 'UpdateData',
-    'Field', 'makeField', 'TypeDef', 'field_name', 'as_field'
+    'Field', 'makeField', 'TypeDef', 'field_name', 'as_field', 'makeDefaultField'
 ]
 
 
-__version__ = '0.24.2'
+__version__ = '1.0.0'
 
 __title__ = 'packets'
 __description__ = 'Packets system for serialization/deserialization.'

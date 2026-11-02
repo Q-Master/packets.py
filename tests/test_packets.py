@@ -2,7 +2,7 @@
 import unittest
 import pickle
 from typing import Optional
-from packets import Packet, ArrayPacket, Field, TablePacket, makeField
+from packets import Packet, ArrayPacket, Field, TablePacket, makeField, makeDefaultField
 from packets.processors import Array, Hash, ArrayT, HashT
 from packets.typedef.string_t import string_t
 from packets.typedef.int_t import int_t
@@ -14,10 +14,10 @@ class TableField(Packet):
     f2: Optional[str] = makeField(string_t)
 
 class Default(TablePacket[TableField]):
-    __default_field__ = makeField(TableField, required=True)
+    __default_field__ = makeDefaultField(TableField)
 
 class Default1(TablePacket[TableField]):
-    __default_field__ = makeField(TableField, required=True)
+    __default_field__ = makeDefaultField(TableField)
     additional = makeField(int_t, default=3)
 
 

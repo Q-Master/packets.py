@@ -11,6 +11,8 @@ T = TypeVar('T')
 
 
 class TypeDef(Generic[T], metaclass=ABCMeta):
+    has_modified: bool = False
+    
     def __init__(self) -> None:
         self._ro = False
         self.has_modified = False

@@ -22,6 +22,7 @@ class Front(Packet):
     a: int = makeField(int_t, default=10)
     b: Optional[float] = makeField(float_t, 'non_B')
     c: Internal = makeField(Internal, required=True)
+    _a: bool = False
 
     def test_call(self) -> bool:
             return True
@@ -51,10 +52,12 @@ class TestWithFields(unittest.TestCase):
         fp_pickled_class = pickle.loads(pickle.dumps(FrontPartial, -1))
         self.assertNotHasAttr(fp_pickled_class, 'test_call')
         fp = Front(c = Internal(e='1'))
+        fp._a = True
         self.assertHasAttr(fp, 'test_call')
         self.assertEqual(True, fp.test_call())
         fp_pickled = pickle.loads(pickle.dumps(fp, -1))
         self.assertHasAttr(fp_pickled, 'test_call')
+        self.assertEqual(fp_pickled._a, True)
         fp_pickled_pickled = pickle.loads(pickle.dumps(fp_pickled, -1))
         self.assertHasAttr(fp_pickled_pickled, 'test_call')
         self.assertEqual(fp_pickled_pickled.test_call(), True)

@@ -23,15 +23,20 @@ class PacketMeta(type):
 T = TypeVar('T', bound='PacketBase')
 
 
+class __Holder__():
+    pass
+
 class PacketBase(metaclass=PacketMeta):
     __fields__: dict[str, 'Field'] = {}
     __local_fields_names__: List[str] = []
     __raw_mapping__: Dict[str, str] = {}
-    __modified__: bool
-    __loading__: bool
+    __modified__: bool = False
+    __loading__: bool = False
     __no_optionals__: bool = False
     __parent__: 'Optional[PacketBase]' = None
-    __diff__: set[str]
+    __diff__: set[str] = set()
+    __holder__: __Holder__ = __Holder__()
+    has_modified: bool = False
 
     def __init__(self, __strict__=True, **kwargs) -> None:
         """Constructor
@@ -44,6 +49,7 @@ class PacketBase(metaclass=PacketMeta):
         Raises:
             ValueError: Raised if field setting is impossible by some reason
         """
+        self.__holder__ = __Holder__()
         self.has_modified = True
         self.__loading__ = True
         for field_name, field_processor in self.__fields__.items():
