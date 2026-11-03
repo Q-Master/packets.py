@@ -7,6 +7,7 @@ from packets.typedef.string_t import string_t
 from packets.typedef.int_t import int_t
 from .process_worker_base import Worker
 
+from wrapt import BaseObjectProxy
 
 tdata = '''
 {
@@ -30,6 +31,10 @@ class TableData(ArrayPacket):
 
 class TestTablePacket(TablePacket[TableData]):
     __default_field__ = makeDefaultField(TableData)
+    f: int
+
+    def on_packet_loaded(self):
+        self.f = 9
 
 
 class TestTablePacket2(TablePacket[str]):
@@ -42,7 +47,7 @@ class TestTablePacketWorker(Worker):
         self.ltp = TestTablePacket.loads(tdata)
 
     def work(self):
-        if self.ltp.a.a != 'check':
+        if self.ltp.a.a != 'check' and self.ltp.f == 9:
             print(f'FAIL')
             raise RuntimeError('FAIL')
 
@@ -59,9 +64,11 @@ class TestTP(unittest.TestCase):
         ltp = TestTablePacket.loads(tdata)
         self.assertEqual(ltp.a.a, 'check')
         self.assertEqual(ltp.b.a, 'check1')
+        self.assertEqual(ltp.f, 9)
         pltp = pickle.loads(pickle.dumps(ltp))
         self.assertEqual(pltp.a.a, 'check')
         self.assertEqual(pltp.b.a, 'check1')
+        self.assertEqual(pltp.f, 9)
         ltp.a.a = 'check2'
         self.assertEqual(ltp.a.a, 'check2')
         self.assertEqual(ltp.diff_keys(), {'a': {'a': '1'}})

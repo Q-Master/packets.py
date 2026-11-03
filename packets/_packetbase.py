@@ -85,18 +85,19 @@ class PacketBase(metaclass=PacketMeta):
 
     def __ne__(self, other: Self) -> bool:
         return not self == other
-    
+
     def __setstate__(self, state):
         """Set state after Pickle deserialization
 
         Args:
             state (dict): restored state
         """
+        self.__init__(__strict__=False)
         self.__dict__.update(state) # type: ignore
         self.__modified__ = False
 
     def __getstate__(self) -> object:
-        return self.__dict__.copy()
+        return self.__dict__
 
     def __iter__(self):
         for field_name in self.__class__.__fields__:

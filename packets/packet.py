@@ -228,10 +228,14 @@ class TablePacket(PacketBase, Generic[_TPTV], metaclass = TablePacketMeta):
             yield k_v
 
     def __getattr__(self, name) -> _TPTV:
-        return self.__table_packet_data__[name]
+        has_attr = name in self.__fields__.keys() or name in dir(self) or name in self.__class__.__dict__.get('__static_attributes__', ())
+        if has_attr:
+            return super().__getattr__(name) # type: ignore
+        else:
+            return self.__table_packet_data__[name]
 
     def __setattr__(self, name: str, value: _TPTV) -> None:
-        has_attr = name in self.__fields__.keys() or name in dir(self)
+        has_attr = name in self.__fields__.keys() or name in dir(self) or name in self.__class__.__dict__.get('__static_attributes__', ())
         if has_attr:
             super().__setattr__(name, value)
         else:
