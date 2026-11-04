@@ -74,7 +74,7 @@ class Field(Generic[FT]):
         instance.__diff__.add(self.name)
         instance.set_modified()
 
-    def __set_name__(self, owner: 'PacketBase', name):
+    def __set_name__(self, owner: 'type[PacketBase]', name):
         if self.name is None:
             self.name = name
         f = owner.__fields__.get(name, None)
@@ -152,7 +152,7 @@ class Field(Generic[FT]):
         else:
             if __debug__:
                 if not self._typ.check_raw(r):
-                    raise ValueError(f'RAW value {r} ({type(r)}) is not valid')
+                    raise ValueError(f'RAW value {r} ({type(r)}) is not valid for {self._typ.__class__.__name__}')
             v = self._typ.raw_to_py(r, strict)
         if v is None and self._required and strict:
             raise ValueError(f'Field "{self.name}" required')

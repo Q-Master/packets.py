@@ -53,7 +53,7 @@ class TestTablePacketWorker(Worker):
 
 class TestTP(unittest.TestCase):
     def test_pickling(self):
-        worker = Worker()
+        worker = TestTablePacketWorker()
         process = Process(
             target=worker,
             name='{0}W'.format(worker.__class__.__name__)
